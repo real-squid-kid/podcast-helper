@@ -14,6 +14,7 @@ public sealed class MainViewModel(PortableDataStore dataStore) : ObservableObjec
     public bool IsInitialized { get => isInitialized; private set => SetProperty(ref isInitialized, value); }
     public AppSettings? Settings { get; private set; }
     public string DisplayState => "STANDBY";
+    public void ReportSessionStatus(string message) => StatusMessage = message;
 
     public async Task InitializeAsync()
     {

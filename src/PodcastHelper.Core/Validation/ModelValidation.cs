@@ -67,8 +67,10 @@ public static class ModelValidation
         Require(session.Segments.Select(x => x.Original.Id).Distinct().Count() == session.Segments.Length, "Session segment IDs must be unique.");
         Require(session.ReserveSeconds >= 0 && session.PlannedOverageSeconds >= 0 && session.AccountedOverrunSeconds >= 0
             && session.ReserveSeconds <= long.MaxValue / 1000 && session.ReserveSubsecondMs is >= 0 and < 1000
+            && (Int128)session.ReserveSeconds * 1000 + session.ReserveSubsecondMs <= long.MaxValue
             && session.UnfundedOverrunMs >= 0
-            && session.SessionElapsedMs >= 0 && session.ActiveElapsedMs >= 0 && session.ActiveElapsedMs <= session.SessionElapsedMs,
+            && session.SessionElapsedMs >= 0 && session.SessionElapsedMs <= (long.MaxValue - 9999) / TimeSpan.TicksPerMillisecond
+            && session.ActiveElapsedMs >= 0 && session.ActiveElapsedMs <= session.SessionElapsedMs,
             "Session counters must be consistent and non-negative.");
         Require(session.Segments.Aggregate((Int128)0, (sum, x) => sum + x.ActiveElapsedMs) == session.ActiveElapsedMs,
             "Segment durations must add up to the active session time.");
@@ -84,10 +86,13 @@ public static class ModelValidation
             {
                 Time(ended);
                 Require(ended.TakeId == take.Id && ended.SessionElapsedMs >= take.Started.SessionElapsedMs
-                    && ended.TakeElapsedMs == ended.SessionElapsedMs - take.Started.SessionElapsedMs, "Invalid take end.");
+                    && (Int128)ended.TakeElapsedMs.GetValueOrDefault() == (Int128)ended.SessionElapsedMs - take.Started.SessionElapsedMs + ended.TakeClockAdjustmentMs, "Invalid take end.");
             }
             Require(take.Started.SessionElapsedMs <= session.SessionElapsedMs
                 && (take.Ended is null || take.Ended.SessionElapsedMs <= session.SessionElapsedMs), "Take extends beyond session time.");
+            if (take.Ended is null)
+                Require((Int128)session.SessionElapsedMs - take.Started.SessionElapsedMs + take.ElapsedAdjustmentMs >= 0
+                    && (Int128)session.SessionElapsedMs - take.Started.SessionElapsedMs + take.ElapsedAdjustmentMs <= session.SessionElapsedMs, "Invalid adjusted take time.");
         }
         Require(session.Claps.All(x => x is not null && x.Id != Guid.Empty && x.Time is not null)
             && session.Claps.Select(x => x.Id).Distinct().Count() == session.Claps.Length, "Invalid clap IDs.");
@@ -99,7 +104,7 @@ public static class ModelValidation
             Require(clap.Time.SessionElapsedMs >= take!.Started.SessionElapsedMs
                 && clap.Time.SessionElapsedMs <= session.SessionElapsedMs
                 && (take.Ended is null || clap.Time.SessionElapsedMs <= take.Ended.SessionElapsedMs)
-                && clap.Time.TakeElapsedMs == clap.Time.SessionElapsedMs - take.Started.SessionElapsedMs, "Clap lies outside its take.");
+                && (Int128)clap.Time.TakeElapsedMs.GetValueOrDefault() == (Int128)clap.Time.SessionElapsedMs - take.Started.SessionElapsedMs + clap.Time.TakeClockAdjustmentMs, "Clap lies outside its take.");
         }
         int openTakes = session.Takes.Count(x => x.Ended is null);
         Require(openTakes <= 1 && (openTakes == 0 || session.Takes[^1].Ended is null), "Only the last take may be open.");

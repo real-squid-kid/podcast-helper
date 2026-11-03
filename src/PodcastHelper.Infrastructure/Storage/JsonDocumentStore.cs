@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using PodcastHelper.Core.Abstractions;
+using PodcastHelper.Core.Validation;
 
 namespace PodcastHelper.Infrastructure.Storage;
 
@@ -37,7 +38,7 @@ public sealed class JsonDocumentStore(IFileSystem fileSystem)
         return Decode(text, kind, validate);
     }
 
-    public async Task SaveAsync<T>(string path, string kind, T value, Action<T> validate, CancellationToken cancellationToken = default) where T : class
+    public async Task SaveAsync<T>(string path, string kind, T value, Action<T> validate, CancellationToken cancellationToken = default, bool repairCorrupt = false) where T : class
     {
         validate(value);
         var gate = Gates.GetOrAdd(Path.GetFullPath(path), _ => new SemaphoreSlim(1, 1));
@@ -45,7 +46,9 @@ public sealed class JsonDocumentStore(IFileSystem fileSystem)
         try
         {
             // Не затирать неизвестный формат или повреждённые данные даже явным Save.
-            _ = await LoadAsync(path, kind, validate, cancellationToken).ConfigureAwait(false);
+            try { _ = await LoadAsync(path, kind, validate, cancellationToken).ConfigureAwait(false); }
+            catch (Exception ex) when (repairCorrupt && (ex is InvalidDocumentException or ModelValidationException))
+            { /* Восстановимый snapshot пересоздаётся из целого журнала; неизвестную схему не затираем. */ }
             var data = JsonSerializer.SerializeToElement(value, Options);
             var envelope = new Envelope { Kind = kind, SchemaVersion = CurrentSchemaVersion, Data = data, Sha256 = Hash(data) };
             await fileSystem.WriteTextAtomicallyAsync(path, JsonSerializer.Serialize(envelope, Options), cancellationToken).ConfigureAwait(false);

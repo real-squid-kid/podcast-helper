@@ -12,16 +12,22 @@ public sealed record EventTime(
     Guid SegmentId,
     long SegmentActiveElapsedMs,
     Guid? TakeId,
-    long? TakeElapsedMs);
+    long? TakeElapsedMs)
+{
+    public long TakeClockAdjustmentMs { get; init; }
+}
 
-public sealed record Take(Guid Id, int Number, EventTime Started, EventTime? Ended = null);
+public sealed record Take(Guid Id, int Number, EventTime Started, EventTime? Ended = null)
+{
+    public long ElapsedAdjustmentMs { get; init; }
+}
 public sealed record Clap(Guid Id, Guid TakeId, EventTime Time);
 public sealed record PauseContext(EventTime Started, bool? RecordingStopped = null);
 
 public enum SessionEventType
 {
     Ready, Clap, TakeStarted, TakeEnded, Pause, PauseAnswered, Resume,
-    SegmentStarted, SegmentFinished, SegmentReordered, SessionFinished
+    SegmentStarted, SegmentFinished, SegmentReordered, SessionFinished, Undo, Recovered
 }
 
 public sealed record SessionEvent(Guid Id, SessionEventType Type, EventTime Time, string? Detail = null);

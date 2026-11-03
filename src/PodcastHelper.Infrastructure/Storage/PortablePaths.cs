@@ -13,6 +13,12 @@ public sealed class PortablePaths
     }
 
     public string SettingsFile => Path.Combine(BaseDirectory, "config", "settings.json");
+    public string SessionsDirectory => Path.Combine(BaseDirectory, "sessions");
+    public string SessionDirectory(Guid id)
+    {
+        _ = FileName(id);
+        return Path.Combine(SessionsDirectory, id.ToString("N"));
+    }
     public string ScenarioFile(Guid id) => Path.Combine(BaseDirectory, "scenarios", FileName(id));
     public string SessionFile(Guid id)
     {

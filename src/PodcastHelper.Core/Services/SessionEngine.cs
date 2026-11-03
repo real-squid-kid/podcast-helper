@@ -19,8 +19,10 @@ public sealed class SessionEngine
 
     public bool IsClapDialogOpen { get; private set; }
     public bool IsOnAir => session.State == SessionState.Recording;
+    public long MonotonicAnchor => lastTimestamp;
+    public DateTimeOffset CalendarAnchorUtc => nowUtc;
     public long? TakeElapsedMs => session.Pause is { RecordingStopped: null } ? null : OpenTake is { } take
-        ? session.SessionElapsedMs - take.Started.SessionElapsedMs : null;
+        ? checked(session.SessionElapsedMs - take.Started.SessionElapsedMs + take.ElapsedAdjustmentMs) : null;
 
     public SessionEngine(Session initialSession, IClock clock)
     {
@@ -41,6 +43,52 @@ public sealed class SessionEngine
     {
         AdvanceTime();
         return session;
+    }
+
+    public EngineCheckpoint CaptureCheckpoint()
+    {
+        AdvanceTime();
+        return new(session, (int)(sessionTicks % TimeSpan.TicksPerMillisecond),
+            (int)(activeTicks % TimeSpan.TicksPerMillisecond), IsClapDialogOpen);
+    }
+
+    public static SessionEngine FromCheckpoint(EngineCheckpoint checkpoint, IClock clock)
+    {
+        ModelValidation.Session(checkpoint.Session);
+        if (checkpoint.SessionFractionTicks is < 0 or >= 10000 || checkpoint.ActiveFractionTicks is < 0 or >= 10000)
+            throw new ModelValidationException("Invalid fractional time counters.");
+        return new SessionEngine(checkpoint, clock);
+    }
+
+    private SessionEngine(EngineCheckpoint checkpoint, IClock clock)
+    {
+        this.clock = clock;
+        session = checkpoint.Session;
+        sessionTicks = checked(session.SessionElapsedMs * TimeSpan.TicksPerMillisecond + checkpoint.SessionFractionTicks);
+        activeTicks = checked(session.ActiveElapsedMs * TimeSpan.TicksPerMillisecond + checkpoint.ActiveFractionTicks);
+        IsClapDialogOpen = checkpoint.ClapDialogOpen;
+        lastTimestamp = clock.GetTimestamp();
+        ReadCalendarTime();
+    }
+
+    // Точная транзакционная копия внутри одного процесса, без потери времени на запись.
+    public SessionEngine Fork() => new(new EngineCheckpoint(session), clock)
+    {
+        sessionTicks = sessionTicks, activeTicks = activeTicks, lastTimestamp = lastTimestamp,
+        nowUtc = nowUtc, localOffset = localOffset, IsClapDialogOpen = IsClapDialogOpen
+    };
+
+    public SessionEngine WithCheckpoint(EngineCheckpoint checkpoint)
+    {
+        var replacement = FromCheckpoint(checkpoint, clock);
+        replacement.lastTimestamp = lastTimestamp;
+        return replacement;
+    }
+
+    public EventTime ReadEventTime()
+    {
+        AdvanceTime();
+        return CaptureTime();
     }
 
     public BudgetProjection GetBudgetProjection() => BudgetProjector.Project(Refresh());
@@ -217,7 +265,8 @@ public sealed class SessionEngine
         return new(nowUtc, local, local.ToString("HH:mm:ss", CultureInfo.InvariantCulture) + ":00",
             session.SettingsSnapshot.CameraFps, session.SessionElapsedMs, session.ActiveElapsedMs,
             Current.Original.Id, Current.ActiveElapsedMs, take?.Id,
-            take is null ? null : session.SessionElapsedMs - take.Started.SessionElapsedMs);
+            take is null ? null : checked(session.SessionElapsedMs - take.Started.SessionElapsedMs + take.ElapsedAdjustmentMs))
+        { TakeClockAdjustmentMs = take?.ElapsedAdjustmentMs ?? 0 };
     }
 
     private SessionEvent Event(SessionEventType type, string? detail = null) => new(Guid.NewGuid(), type, CaptureTime(), detail);

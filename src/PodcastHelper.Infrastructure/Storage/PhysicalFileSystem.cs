@@ -3,7 +3,7 @@ using PodcastHelper.Core.Abstractions;
 
 namespace PodcastHelper.Infrastructure.Storage;
 
-public sealed class PhysicalFileSystem : IFileSystem
+public sealed class PhysicalFileSystem : IJournalFileSystem
 {
     private static readonly UTF8Encoding Utf8 = new(false, true);
 
@@ -59,4 +59,40 @@ public sealed class PhysicalFileSystem : IFileSystem
         await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
         stream.Flush(flushToDisk: true);
     }
+
+    public async Task<byte[]?> ReadBytesAsync(string path, CancellationToken ct = default)
+    {
+        try { return await File.ReadAllBytesAsync(path, ct).ConfigureAwait(false); }
+        catch (FileNotFoundException) { return null; }
+        catch (DirectoryNotFoundException) { return null; }
+    }
+
+    public async Task AppendDurablyAsync(string path, string text, CancellationToken ct = default)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await using var stream = new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read,
+            4096, FileOptions.Asynchronous | FileOptions.WriteThrough);
+        await stream.WriteAsync(Utf8.GetBytes(text), ct).ConfigureAwait(false);
+        await stream.FlushAsync(ct).ConfigureAwait(false);
+        stream.Flush(flushToDisk: true);
+    }
+
+    public Task<IDisposable> AcquireLeaseAsync(string path, CancellationToken ct = default) => Task.Run<IDisposable>(() =>
+    {
+        ct.ThrowIfCancellationRequested();
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+    }, ct);
+
+    public Task<IReadOnlyList<string>> EnumerateFilesAsync(string directory, string pattern, CancellationToken ct = default) => Task.Run<IReadOnlyList<string>>(() =>
+    {
+        ct.ThrowIfCancellationRequested();
+        return Directory.Exists(directory) ? Directory.GetFiles(directory, pattern) : [];
+    }, ct);
+
+    public Task<IReadOnlyList<string>> EnumerateDirectoriesAsync(string directory, CancellationToken ct = default) => Task.Run<IReadOnlyList<string>>(() =>
+    {
+        ct.ThrowIfCancellationRequested();
+        return Directory.Exists(directory) ? Directory.GetDirectories(directory) : [];
+    }, ct);
 }
