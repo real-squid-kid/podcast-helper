@@ -1,0 +1,73 @@
+# PodcastHelper: Git tracks application sources and legal notices,
+# not local working documents, Codex instructions, tests or user sessions.
+
+# ALL ordinary Markdown docs are local. The root README is the only
+# ordinary documentation file intentionally tracked.
+*.[mM][dD]
+!/[Rr][Ee][Aa][Dd][Mm][Ee].[mM][dD]
+
+# Mandatory legal notices are EXCEPTIONS to the documentation rule.
+!/[Tt][Hh][Ii][Rr][Dd]_[Pp][Aa][Rr][Tt][Yy]_[Nn][Oo][Tt][Ii][Cc][Ee][Ss].[mM][dD]
+!/licenses/*.[mM][dD]
+!/licenses/**/*.[mM][dD]
+
+# Local specifications, guides, instruction files (regardless of extension).
+/docs/
+/documentation/
+/TECHNICAL_SPECIFICATION.*
+/AGENTS.*
+/AGENTS.override.*
+/INTERNAL_README.*
+/notes/
+/specs/
+*.pdf
+*.docx
+
+# Tests must remain local, runnable and NOT tracked.
+**/[Tt]ests/
+**/[Tt]est/
+**/[Tt]est[Rr]esults/
+**/*[Tt]ests.cs
+**/*[Tt]est.cs
+**/*.trx
+**/*.coverage
+**/*.coveragexml
+**/coverage/
+**/.coverage/
+
+# Build and IDE artifacts.
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.idea/
+/artifacts/
+/publish/
+/dist/
+/.tools/
+/.dotnet-home/
+/.nuget/
+*.user
+*.suo
+*.cache
+
+# Generated / user data and runtime distributions.
+/config/
+/scenarios/
+/sessions/
+/sounds/
+/exports/
+/logs/
+/libs/
+*.log
+*.tmp
+*.bak
+*.partial
+
+# OS junk.
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Keep source assets, solution/project files, .gitignore, root LICENSE,
+# THIRD_PARTY_NOTICES.md and legally required licenses/ files trackable.

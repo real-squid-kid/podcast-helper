@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PodcastHelper.Core/PodcastHelper.Core.csproj" />
+    <Project Path="src/PodcastHelper.Infrastructure/PodcastHelper.Infrastructure.csproj" />
+    <Project Path="src/PodcastHelper.App/PodcastHelper.App.csproj" />
+  </Folder>
+</Solution>
