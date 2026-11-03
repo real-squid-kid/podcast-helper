@@ -4,9 +4,12 @@ namespace PodcastHelper.Core.Models;
 
 public enum SessionState { Preparing, Ready, Recording, Paused, AwaitingClap, Finished }
 
-public sealed record SessionSegment(Segment Original, int BudgetSeconds, long ActiveElapsedMs);
+public sealed record SessionSegment(Segment Original, int BudgetSeconds, long ActiveElapsedMs)
+{
+    public long ReserveUsedMs { get; init; }
+}
 
-// Только сохраняемые данные. Переходы состояний и расчёт времени — следующий этап.
+// Только сохраняемые данные. Переходы состояний и расчёт времени выполняет SessionEngine.
 // Монотонные timestamp не сохраняются между запусками процесса.
 public sealed record Session
 {
@@ -18,10 +21,15 @@ public sealed record Session
     public ImmutableArray<SessionSegment> Segments { get; init; } = [];
     public int CurrentSegmentIndex { get; init; }
     public long ReserveSeconds { get; init; }
+    public int ReserveSubsecondMs { get; init; }
     public long PlannedOverageSeconds { get; init; }
     public long AccountedOverrunSeconds { get; init; }
+    public long UnfundedOverrunMs { get; init; }
     public long SessionElapsedMs { get; init; }
     public long ActiveElapsedMs { get; init; }
     public DateTimeOffset? StartedUtc { get; init; }
     public DateTimeOffset? FinishedUtc { get; init; }
+    public ImmutableArray<Take> Takes { get; init; } = [];
+    public ImmutableArray<Clap> Claps { get; init; } = [];
+    public PauseContext? Pause { get; init; }
 }

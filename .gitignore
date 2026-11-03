@@ -44,6 +44,7 @@
 /artifacts/
 /publish/
 /dist/
+/preview/
 /.tools/
 /.dotnet-home/
 /.nuget/
