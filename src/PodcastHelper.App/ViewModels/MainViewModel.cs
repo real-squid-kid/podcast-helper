@@ -49,6 +49,8 @@ public sealed class MainViewModel : ObservableObject
     public Func<string, Task<string?>>? RequestExportFolder { get; set; }
     public Action<string>? OpenExportFolder { get; set; }
     public string ExportFolder => exportFolder;
+    private bool compactExport = true;
+    public bool CompactExport { get => compactExport; set => SetProperty(ref compactExport, value); }
     public string ExportStatus { get => exportStatus; private set => SetProperty(ref exportStatus, value); }
     public event Action? FullScreenRequested;
     public event Action<AppSettings>? TimerEnded;
@@ -392,8 +394,9 @@ public sealed class MainViewModel : ObservableObject
         try
         {
             ExportStatus = $"Saving {format.ToString().ToUpperInvariant()}…";
-            var archive = await Controller.CaptureArchiveAsync(); string name = SessionExportService.FileName(archive.Session, format);
-            await exporter.ExportAsync(archive, format, Path.Combine(exportFolder, name));
+            var content = CompactExport ? SessionExportContent.Moments : SessionExportContent.Full;
+            var archive = await Controller.CaptureArchiveAsync(); string name = SessionExportService.FileName(archive.Session, format, content);
+            await exporter.ExportAsync(archive, format, Path.Combine(exportFolder, name), content: content);
             ExportStatus = $"{format.ToString().ToUpperInvariant()} saved";
             if (exportAlert) { StatusMessage = "Export saved."; exportAlert = false; }
         }

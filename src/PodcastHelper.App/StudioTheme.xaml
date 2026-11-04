@@ -4,6 +4,17 @@
     <BooleanToVisibilityConverter x:Key="Bool" />
     <SolidColorBrush x:Key="Paper" Color="#F1EDDF" />
     <SolidColorBrush x:Key="Ink" Color="#29343A" />
+    <SolidColorBrush x:Key="ScrollTrack" Color="#E4DFD0" />
+    <SolidColorBrush x:Key="ScrollThumb" Color="#A69A80" />
+    <Style x:Key="ScrollGrip" TargetType="Thumb">
+        <Setter Property="MinHeight" Value="12" /><Setter Property="MinWidth" Value="12" />
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Thumb"><Border x:Name="Grip" Margin="2" CornerRadius="3" Background="{DynamicResource ScrollThumb}" BorderBrush="#55736D5C" BorderThickness="1"><Border BorderBrush="#40FFFFFF" BorderThickness="1,1,0,0" CornerRadius="2" /></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Grip" Property="Opacity" Value="0.8" /></Trigger><Trigger Property="IsDragging" Value="True"><Setter TargetName="Grip" Property="Opacity" Value="0.65" /></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+    </Style>
+    <Style TargetType="ScrollBar">
+        <Setter Property="Width" Value="14" /><Setter Property="Background" Value="{DynamicResource ScrollTrack}" /><Setter Property="Stylus.IsPressAndHoldEnabled" Value="False" />
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ScrollBar"><Grid Background="{TemplateBinding Background}"><Track x:Name="PART_Track" IsDirectionReversed="True" Orientation="{TemplateBinding Orientation}"><Track.DecreaseRepeatButton><RepeatButton x:Name="Before" Command="ScrollBar.PageUpCommand" Focusable="False"><RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Background="Transparent" /></ControlTemplate></RepeatButton.Template></RepeatButton></Track.DecreaseRepeatButton><Track.Thumb><Thumb Style="{StaticResource ScrollGrip}" /></Track.Thumb><Track.IncreaseRepeatButton><RepeatButton x:Name="After" Command="ScrollBar.PageDownCommand" Focusable="False"><RepeatButton.Template><ControlTemplate TargetType="RepeatButton"><Border Background="Transparent" /></ControlTemplate></RepeatButton.Template></RepeatButton></Track.IncreaseRepeatButton></Track></Grid><ControlTemplate.Triggers><Trigger Property="Orientation" Value="Horizontal"><Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False" /><Setter TargetName="Before" Property="Command" Value="ScrollBar.PageLeftCommand" /><Setter TargetName="After" Property="Command" Value="ScrollBar.PageRightCommand" /></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        <Style.Triggers><Trigger Property="Orientation" Value="Horizontal"><Setter Property="Width" Value="Auto" /><Setter Property="Height" Value="14" /></Trigger></Style.Triggers>
+    </Style>
     <LinearGradientBrush x:Key="Metal" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#616B6E" Offset="0" /><GradientStop Color="#363F43" Offset="0.025" /><GradientStop Color="#30393D" Offset="0.5" /><GradientStop Color="#252E32" Offset="1" /></LinearGradientBrush>
     <LinearGradientBrush x:Key="KeyCap" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#687272" /><GradientStop Color="#495557" Offset="0.12" /><GradientStop Color="#384448" Offset="1" /></LinearGradientBrush>
     <LinearGradientBrush x:Key="IvoryCap" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#FFFEF6" /><GradientStop Color="#E8E2D2" Offset="0.16" /><GradientStop Color="#CEC7B7" Offset="1" /></LinearGradientBrush>

@@ -11,6 +11,7 @@ namespace PodcastHelper.Infrastructure.Export;
 public sealed record ExportTable(string Name, ImmutableArray<string> Columns, ImmutableArray<ImmutableArray<string>> Rows);
 public sealed record ExportDocument(ImmutableArray<ExportTable> Tables);
 public enum SessionExportFormat { Csv, Xls }
+public enum SessionExportContent { Full, Moments }
 public sealed class ExportLimitException(string message) : Exception(message);
 
 public static class SessionExportProjection
@@ -20,8 +21,10 @@ public static class SessionExportProjection
     private static string Number(long value) => value.ToString(Culture);
     private static string Json<T>(T value) => JsonSerializer.Serialize(value);
 
-    public static ExportDocument Create(SessionArchive archive)
+    public static ExportDocument Create(SessionArchive archive, SessionExportContent content = SessionExportContent.Full)
     {
+        if (!Enum.IsDefined(content)) throw new ArgumentOutOfRangeException(nameof(content));
+        if (content == SessionExportContent.Moments) return CreateMoments(archive);
         var session = archive.Session;
         Segment? InitialSegment(Guid id) => session.ScenarioSnapshot.Segments.FirstOrDefault(x => x.Id == id)
             ?? archive.Journal.Records.FirstOrDefault(x => x.Command.Kind == SessionCommandKind.AddSegment && x.Command.Segment?.Id == id)?.Command.Segment;
@@ -87,6 +90,36 @@ public static class SessionExportProjection
             .Select(x => ImmutableArray.Create(x.Id.ToString(), Number(x.Sequence), x.UtcTimestamp.ToString("O"), x.Command.Kind.ToString(), x.UndoOf?.ToString() ?? "", Json(x.Command))).ToImmutableArray()));
         return new(tables.ToImmutable());
     }
+
+    private static ExportDocument CreateMoments(SessionArchive archive)
+    {
+        var session = archive.Session;
+        string TakeNumber(Guid? id) => session.Takes.FirstOrDefault(x => x.Id == id)?.Number.ToString(Culture) ?? "";
+        return new([
+            new("Session", ["field", "value"], new Dictionary<string, string>
+            {
+                ["scenarioName"] = session.ScenarioSnapshot.Name, ["sessionId"] = session.Id.ToString(),
+                ["startedUtc"] = session.StartedUtc?.ToString("O") ?? "", ["finishedUtc"] = session.FinishedUtc?.ToString("O") ?? "",
+                ["sessionTime"] = Time(session.SessionElapsedMs), ["status"] = archive.Status,
+                ["fps"] = session.SettingsSnapshot.CameraFps.ToString(Culture),
+                ["timecodeNote"] = "SMPTE timecode is predicted based on computer time. FF is always :00."
+            }.Select(x => ImmutableArray.Create(x.Key, x.Value)).ToImmutableArray()),
+            new("Moments", ["sessionTime", "categories", "takeNumber", "pressedTakeTime", "pressedSessionTime", "markerOffsetSeconds", "pressedUtc", "pressedComputerTime", "segmentName", "momentId"],
+                session.Moments.Select(x =>
+                {
+                    var first = x.Presses[0]; var time = first.Time;
+                    return ImmutableArray.Create(Time(x.SessionElapsedMs), string.Join(", ", x.Categories.Select(c => c.Name)), TakeNumber(time.TakeId),
+                        time.TakeElapsedMs is { } take ? Time(take) : "", Time(time.SessionElapsedMs), Number(first.OffsetSeconds), time.UtcTimestamp.ToString("O"),
+                        time.LocalComputerTimestamp.ToString("O"), session.Segments.FirstOrDefault(s => s.Original.Id == time.SegmentId)?.Original.Name ?? "", x.Id.ToString());
+                }).ToImmutableArray()),
+            new("Claps", ["sessionTime", "takeTime", "takeNumber", "utcTimestamp", "computerTime", "predictedCameraTimecode", "fps"],
+                archive.Journal.Records.SelectMany(x => x.Events).Where(x => x.Type == SessionEventType.Clap).Select(x => ImmutableArray.Create(
+                    Time(x.Time.SessionElapsedMs), x.Time.TakeElapsedMs is { } take ? Time(take) : "", TakeNumber(x.Time.TakeId), x.Time.UtcTimestamp.ToString("O"),
+                    x.Time.LocalComputerTimestamp.ToString("O"), x.Time.PredictedCameraTimecode, x.Time.Fps.ToString(Culture))).ToImmutableArray()),
+            new("Takes", ["takeNumber", "startedUtc", "endedUtc", "sessionStart", "sessionEnd"], session.Takes.Select(x => ImmutableArray.Create(
+                Number(x.Number), x.Started.UtcTimestamp.ToString("O"), x.Ended?.UtcTimestamp.ToString("O") ?? "", Time(x.Started.SessionElapsedMs),
+                x.Ended is null ? "" : Time(x.Ended.SessionElapsedMs))).ToImmutableArray())]);
+    }
 }
 
 public static class SessionCsvWriter
@@ -111,23 +144,23 @@ public static class SessionCsvWriter
 
 public sealed class SessionExportService(IArchiveFileSystem files)
 {
-    public async Task ExportAsync(SessionArchive archive, SessionExportFormat format, string path, CancellationToken ct = default)
+    public async Task ExportAsync(SessionArchive archive, SessionExportFormat format, string path, CancellationToken ct = default, SessionExportContent content = SessionExportContent.Full)
     {
         if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
         string expected = format == SessionExportFormat.Csv ? ".csv" : ".xls";
         if (!Path.IsPathFullyQualified(path) || !Path.GetExtension(path).Equals(expected, StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Invalid export path or extension.");
         byte[] bytes = await Task.Run(() =>
         {
-            var document = SessionExportProjection.Create(archive);
+            var document = SessionExportProjection.Create(archive, content);
             return format == SessionExportFormat.Csv ? SessionCsvWriter.Write(document, ct) : BinaryXlsWriter.Write(document, ct);
         }, ct).ConfigureAwait(false);
         await files.WriteBytesAtomicallyAsync(path, bytes, ct).ConfigureAwait(false);
     }
 
-    public static string FileName(Session session, SessionExportFormat format)
+    public static string FileName(Session session, SessionExportFormat format, SessionExportContent content = SessionExportContent.Full)
     {
         string safe = new(session.ScenarioSnapshot.Name.Where(x => !Path.GetInvalidFileNameChars().Contains(x) && !char.IsControl(x)).Take(60).ToArray());
         safe = safe.Trim().TrimEnd('.'); if (safe.Length == 0) safe = "Session";
-        return $"{safe}-{session.CreatedUtc:yyyyMMdd-HHmmss}-{session.Id.ToString("N")[..8]}-{Guid.NewGuid().ToString("N")[..8]}.{format.ToString().ToLowerInvariant()}";
+        return $"{safe}-{session.CreatedUtc:yyyyMMdd-HHmmss}-{session.Id.ToString("N")[..8]}-{Guid.NewGuid().ToString("N")[..8]}{(content == SessionExportContent.Moments ? "-moments" : "")}.{format.ToString().ToLowerInvariant()}";
     }
 }

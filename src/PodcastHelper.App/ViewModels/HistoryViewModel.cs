@@ -37,6 +37,8 @@ public sealed class HistoryViewModel : ObservableObject
     public bool NotBusy => !IsBusy;
     public string Message { get => message; private set => SetProperty(ref message, value); }
     public string ExportFolder { get => exportFolder; set => SetProperty(ref exportFolder, value); }
+    private bool compactExport = true;
+    public bool CompactExport { get => compactExport; set => SetProperty(ref compactExport, value); }
     public string[] Sections { get; } = ["Segments", "Moments", "System", "Takes", "Changes"];
     public string Section { get => section; set { if (SetProperty(ref section, value)) RefreshDetails(); } }
     public ObservableCollection<HistoryItem> Sessions { get; } = [];
@@ -128,9 +130,10 @@ public sealed class HistoryViewModel : ObservableObject
     private async Task ExportAsync(SessionExportFormat format)
     {
         if (archive is null) return;
-        string path = Path.Combine(Path.GetFullPath(ExportFolder), SessionExportService.FileName(archive.Session, format));
+        var content = CompactExport ? SessionExportContent.Moments : SessionExportContent.Full;
+        string path = Path.Combine(Path.GetFullPath(ExportFolder), SessionExportService.FileName(archive.Session, format, content));
         Message = $"Saving {format.ToString().ToUpperInvariant()}…";
-        await exporter.ExportAsync(archive, format, path); Message = $"{format.ToString().ToUpperInvariant()} saved";
+        await exporter.ExportAsync(archive, format, path, content: content); Message = $"{format.ToString().ToUpperInvariant()} saved";
     }
     private void RefreshDetails()
     {
