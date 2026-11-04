@@ -26,7 +26,7 @@ public sealed class SessionHistoryStore(PortablePaths paths, IArchiveFileSystem 
         var result = new List<HistoryEntry>();
         foreach (string directory in await files.EnumerateDirectoriesAsync(paths.SessionsDirectory, ct).ConfigureAwait(false))
         {
-            if (!Guid.TryParseExact(Path.GetFileName(directory), "N", out var id)) continue;
+            if (!Guid.TryParseExact(Path.GetFileName(directory), "N", out var id) || id == Guid.Empty) continue;
             IDisposable lease;
             try { lease = await journals.LeaseAsync(id, ct).ConfigureAwait(false); }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

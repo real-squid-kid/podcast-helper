@@ -92,7 +92,7 @@ public sealed class SessionJournalStore(PortablePaths paths, IJournalFileSystem 
         var result = new List<SessionDiscovery>();
         foreach (var directory in await fileSystem.EnumerateDirectoriesAsync(paths.SessionsDirectory, ct).ConfigureAwait(false))
         {
-            if (!Guid.TryParseExact(Path.GetFileName(directory), "N", out var id)) continue;
+            if (!Guid.TryParseExact(Path.GetFileName(directory), "N", out var id) || id == Guid.Empty) continue;
             IDisposable lease;
             try { lease = await LeaseAsync(id, ct).ConfigureAwait(false); }
             catch (IOException) { result.Add(new(id, "Session is in use or unavailable.", true, false, null, null)); continue; }

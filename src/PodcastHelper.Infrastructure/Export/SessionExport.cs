@@ -23,6 +23,8 @@ public static class SessionExportProjection
     public static ExportDocument Create(SessionArchive archive)
     {
         var session = archive.Session;
+        Segment? InitialSegment(Guid id) => session.ScenarioSnapshot.Segments.FirstOrDefault(x => x.Id == id)
+            ?? archive.Journal.Records.FirstOrDefault(x => x.Command.Kind == SessionCommandKind.AddSegment && x.Command.Segment?.Id == id)?.Command.Segment;
         var tables = ImmutableArray.CreateBuilder<ExportTable>();
         tables.Add(new("Session", ["field", "value"], new Dictionary<string, string>
         {
@@ -67,14 +69,14 @@ public static class SessionExportProjection
         tables.Add(new("Moments", ["id", "sessionTime", "sessionElapsedMs", "categories", "categoryIds", "pressedUtc", "pressedComputerTime", "pressedSessionElapsedMs", "markerOffsetSeconds", "momentId", "presses"], moments.ToImmutable())); tables.Add(new("Moment presses", columns, presses.ToImmutable()));
         tables.Add(new("Segments", ["segmentId", "order", "name", "originalSeconds", "sessionPlannedSeconds", "budgetSeconds", "actualMs", "reserveUsedMs", "removed", "description", "templateName", "templateDescription"],
             session.Segments.Select((x, i) => ImmutableArray.Create(x.Original.Id.ToString(), Number(i + 1), x.Original.Name,
-                session.ScenarioSnapshot.Segments.FirstOrDefault(s => s.Id == x.Original.Id)?.OriginalSeconds.ToString(Culture) ?? "", Number(x.Original.OriginalSeconds),
+                InitialSegment(x.Original.Id)?.OriginalSeconds.ToString(Culture) ?? "", Number(x.Original.OriginalSeconds),
                 Number(x.BudgetSeconds), Number(x.ActiveElapsedMs), Number(x.ReserveUsedMs), x.RemovedFromScenario.ToString(), x.Original.DescriptionMarkdown,
                 session.ScenarioSnapshot.Segments.FirstOrDefault(s => s.Id == x.Original.Id)?.Name ?? "", session.ScenarioSnapshot.Segments.FirstOrDefault(s => s.Id == x.Original.Id)?.DescriptionMarkdown ?? "")).ToImmutableArray()));
         var removed = session.ScenarioSnapshot.Segments.Concat(archive.Journal.Records.Where(x => x.Command.Segment is not null).Select(x => x.Command.Segment!))
             .GroupBy(x => x.Id).Select(x => x.Last()).Where(x => session.Segments.All(s => s.Original.Id != x.Id));
         var segmentTable = tables[^1];
         tables[^1] = segmentTable with { Rows = segmentTable.Rows.AddRange(removed.Select(x => ImmutableArray.Create(x.Id.ToString(), "", x.Name,
-            Number(session.ScenarioSnapshot.Segments.FirstOrDefault(s => s.Id == x.Id)?.OriginalSeconds ?? x.OriginalSeconds), Number(x.OriginalSeconds), "0", "0", "0", "True", x.DescriptionMarkdown,
+            Number(InitialSegment(x.Id)?.OriginalSeconds ?? x.OriginalSeconds), Number(x.OriginalSeconds), "0", "0", "0", "True", x.DescriptionMarkdown,
             session.ScenarioSnapshot.Segments.FirstOrDefault(s => s.Id == x.Id)?.Name ?? "", session.ScenarioSnapshot.Segments.FirstOrDefault(s => s.Id == x.Id)?.DescriptionMarkdown ?? ""))) };
         tables.Add(new("Takes", ["takeId", "number", "startedUtc", "startedComputerTime", "startedSessionMs", "endedUtc", "endedComputerTime", "endedSessionMs", "elapsedAdjustmentMs", "startDetails", "endDetails"],
             session.Takes.Select(x => ImmutableArray.Create(x.Id.ToString(), Number(x.Number), x.Started.UtcTimestamp.ToString("O"), x.Started.LocalComputerTimestamp.ToString("O"),
