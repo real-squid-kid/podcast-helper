@@ -12,7 +12,7 @@ public static class ApplicationLocation
     public static Uri RepositoryUri { get; } = new("https://github.com/real-squid-kid/podcast-helper");
     public static string RootDirectory => IsPortable
         ? Directory.GetParent(Path.TrimEndingDirectorySeparator(AppContext.BaseDirectory))!.FullName : AppContext.BaseDirectory;
-    public static string Version => (Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.1.0-preview").Split('+')[0];
+    public static string Version => (Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "1.0.0").Split('+')[0];
     public static string Build
     {
         get

@@ -9,7 +9,7 @@ if (-not $OutputDirectory) { $OutputDirectory = Join-Path $artifactsRoot ('Podca
 $destination = [IO.Path]::GetFullPath($OutputDirectory)
 if (-not $destination.StartsWith($artifactsRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { throw 'Portable output must be a new directory inside artifacts/.' }
 if (Test-Path -LiteralPath $destination) { throw 'Output already exists. Use a new directory to preserve previous data.' }
-$arguments = @('publish', (Join-Path $projectRoot 'src/PodcastHelper.App/PodcastHelper.App.csproj'), '-c', 'Release', '-r', 'win-x64', '--self-contained', 'true', '-p:PortablePublish=true', ('-p:PublishDir=' + (Join-Path $destination 'libs') + [IO.Path]::DirectorySeparatorChar), ('-p:SourceRevisionId=' + $commit), ('-p:BuildCommit=' + $commit), ('-p:BuildModified=' + $modified))
+$arguments = @('publish', (Join-Path $projectRoot 'src/PodcastHelper.App/PodcastHelper.App.csproj'), '-c', 'Release', '-r', 'win-x64', '--self-contained', 'true', '-p:PortablePublish=true', '-p:DebugType=None', '-p:DebugSymbols=false', ('-p:PublishDir=' + (Join-Path $destination 'libs') + [IO.Path]::DirectorySeparatorChar), ('-p:SourceRevisionId=' + $commit), ('-p:BuildCommit=' + $commit), ('-p:BuildModified=' + $modified))
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'dev.ps1') @arguments
 if ($LASTEXITCODE -ne 0) { throw 'Portable publish failed. The incomplete output is retained for review.' }
 $config = Get-Content -LiteralPath (Join-Path $destination 'libs/PodcastHelper.runtimeconfig.json') -Raw | ConvertFrom-Json
