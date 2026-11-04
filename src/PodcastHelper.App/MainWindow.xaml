@@ -28,6 +28,7 @@
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
                             <Button FontSize="16" Style="{StaticResource IconKey}" Command="{Binding HistoryCommand}" ToolTip="Session history" AutomationProperties.Name="Session history" Margin="0,0,10,0"><controls:StudioIcon Kind="history" /></Button>
                             <Button FontSize="16" Style="{StaticResource IconKey}" Command="{Binding SettingsCommand}" ToolTip="Settings" AutomationProperties.Name="Settings" Margin="0,0,10,0"><controls:StudioIcon Kind="settings" /></Button>
+                            <Button FontSize="16" Style="{StaticResource IconKey}" Command="{Binding AboutCommand}" ToolTip="About PodcastHelper" AutomationProperties.Name="About PodcastHelper" Margin="0,0,10,0"><controls:StudioIcon Kind="info" /></Button>
                             <Button FontSize="16" Style="{StaticResource IconKey}" Command="{Binding FullScreenCommand}" ToolTip="Full screen / Window · F11" AutomationProperties.Name="Full screen / Window"><controls:StudioIcon Kind="expand" /></Button>
                         </StackPanel>
                     </DockPanel>

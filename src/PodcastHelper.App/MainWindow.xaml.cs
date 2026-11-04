@@ -23,7 +23,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         macropad = new MacropadInput(this, () => viewModel, () => modalDepth > 0);
         if (Application.Current is { } application) focusAttention = new FocusAttention(application, this);
-        sound = new TimerSoundPlayer(new PortablePaths(AppContext.BaseDirectory), message => viewModel?.ReportSessionStatus(message));
+        sound = new TimerSoundPlayer(new PortablePaths(ApplicationLocation.RootDirectory), message => viewModel?.ReportSessionStatus(message));
         DataContextChanged += OnContextChanged;
         refreshTimer.Tick += async (_, _) => { if (viewModel is not null) await viewModel.PollAsync(); };
         Loaded += (_, _) => { refreshTimer.Start(); SetFullScreen(true); };
@@ -40,6 +40,7 @@ public partial class MainWindow : Window
         viewModel.RequestEditor = vm => { ShowOperatorDialog(new ScenarioEditorWindow(vm)); return Task.FromResult(vm.Result); };
         viewModel.RequestSettings = vm => { ShowOperatorDialog(new SettingsWindow(vm)); return Task.FromResult(vm.Result); };
         viewModel.RequestHistory = vm => { ShowOperatorDialog(new HistoryWindow(vm)); return Task.CompletedTask; };
+        viewModel.RequestAbout = mouse => { ShowOperatorDialog(new AboutWindow(new AboutViewModel(ApplicationLocation.Version, ApplicationLocation.Build, mouse))); return Task.CompletedTask; };
         viewModel.RequestExportFolder = folder => HistoryWindow.ChooseFolderAsync(this, folder, viewModel.HasMacropad);
         viewModel.OpenExportFolder = HistoryWindow.OpenExportFolder;
         viewModel.FullScreenRequested += ToggleFullScreen; viewModel.TimerEnded += sound.Play; viewModel.UndoApplied += FlashUndo;

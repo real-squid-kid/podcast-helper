@@ -21,6 +21,8 @@ public sealed class StudioIcon : FrameworkElement
         string path = Kind switch
         {
             "plus" => "M5,12 H19 M12,5 V19",
+            "info" => "M22,12 A10,10 0 1 1 2,12 A10,10 0 1 1 22,12 M12,10 V18 M12,6 V7",
+            "heart" => "M12,21 L3,12 C-3,3 8,-1 12,6 C16,-1 27,3 21,12 Z",
             "history" => "M3,3 H21 V8 H3 Z M5,8 V21 H19 V8 M9,12 H15 M9,16 H15",
             "folder" => "M2,6 H10 L12,9 H22 L19,21 H2 Z M2,9 V3 H10 L12,6 H21 V9",
             "folder-open" => "M2,7 H10 L12,10 H21 L18,22 H2 Z M2,10 V4 H9 M14,2 H22 V10 M22,2 L13,11",

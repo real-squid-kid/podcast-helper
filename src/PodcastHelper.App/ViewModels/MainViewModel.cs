@@ -45,6 +45,7 @@ public sealed class MainViewModel : ObservableObject
     public Func<ScenarioEditorViewModel, Task<Scenario?>>? RequestEditor { get; set; }
     public Func<SettingsViewModel, Task<AppSettings?>>? RequestSettings { get; set; }
     public Func<HistoryViewModel, Task>? RequestHistory { get; set; }
+    public Func<bool, Task>? RequestAbout { get; set; }
     public Func<string, Task<string?>>? RequestExportFolder { get; set; }
     public Action<string>? OpenExportFolder { get; set; }
     public string ExportFolder => exportFolder;
@@ -163,6 +164,7 @@ public sealed class MainViewModel : ObservableObject
     public ICommand EditScenarioCommand { get; }
     public ICommand SettingsCommand { get; }
     public ICommand HistoryCommand { get; }
+    public ICommand AboutCommand { get; }
     public ICommand ExportCsvCommand { get; }
     public ICommand ExportXlsCommand { get; }
     public ICommand ExportFolderCommand { get; }
@@ -200,6 +202,7 @@ public sealed class MainViewModel : ObservableObject
         NewScenarioCommand = Make(() => EditSourceAsync(true), () => IsInitialized && IsStandby);
         EditScenarioCommand = Make(() => EditSourceAsync(false), () => IsInitialized && IsStandby && SelectedScenario is not null);
         SettingsCommand = Make(EditSettingsAsync, () => IsInitialized);
+        AboutCommand = Make(async () => { if (RequestAbout is not null) await RequestAbout(HasMacropad); }, () => true);
         HistoryCommand = Make(async () =>
         {
             if (RequestHistory is null || historyStore is null || exporter is null) return;

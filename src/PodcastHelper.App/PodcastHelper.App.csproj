@@ -5,10 +5,44 @@
     <UseWPF>true</UseWPF>
     <PlatformTarget>x64</PlatformTarget>
     <AssemblyName>PodcastHelper</AssemblyName>
+    <Version>0.1.0-preview</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <Authors>Caspian</Authors>
+    <Copyright>© 2026 Caspian</Copyright>
+    <RuntimeFrameworkVersion>10.0.14</RuntimeFrameworkVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(PortablePublish)' == 'true'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <DebugType>None</DebugType>
+    <DebugSymbols>false</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
+    <AssemblyMetadata Include="PortableLayout" Value="libs" Condition="'$(PortablePublish)' == 'true'" />
+    <AssemblyMetadata Include="BuildCommit" Value="$(BuildCommit)" Condition="'$(BuildCommit)' != ''" />
+    <AssemblyMetadata Include="BuildModified" Value="$(BuildModified)" Condition="'$(BuildModified)' != ''" />
+    <Content Include="../../LICENSE;../../THIRD_PARTY_NOTICES.md" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
+    <Content Include="../../licenses/**/*" Link="licenses/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" />
     <Resource Include="../../buttons/*.png" Link="buttons/%(Filename)%(Extension)" />
     <ProjectReference Include="../PodcastHelper.Core/PodcastHelper.Core.csproj" />
     <ProjectReference Include="../PodcastHelper.Infrastructure/PodcastHelper.Infrastructure.csproj" />
   </ItemGroup>
+  <Target Name="CreatePortableLayout" AfterTargets="Publish" Condition="'$(PortablePublish)' == 'true'">
+    <Error Condition="'$(SelfContained)' != 'true' or '$(RuntimeIdentifier)' != 'win-x64' or '$(PublishSingleFile)' == 'true'" Text="Portable layout requires self-contained win-x64 without single-file extraction." />
+    <PropertyGroup>
+      <_PortableRoot>$([System.IO.Path]::GetFullPath('$(PublishDir)../'))</_PortableRoot>
+      <_PortableLibs>$([System.IO.Path]::TrimEndingDirectorySeparator('$(PublishDir)'))</_PortableLibs>
+      <_PortableLibsName>$([System.IO.Path]::GetFileName('$(_PortableLibs)'))</_PortableLibsName>
+    </PropertyGroup>
+    <Error Condition="'$(_PortableLibsName)' != 'libs'" Text="Portable PublishDir must end in libs/." />
+    <CreateAppHost AppHostSourcePath="$(AppHostSourcePath)" AppHostDestinationPath="$(_PortableRoot)PodcastHelper.exe" AppBinaryName="libs/PodcastHelper.dll" IntermediateAssembly="@(IntermediateAssembly->'%(FullPath)')" WindowsGraphicalUserInterface="true" />
+    <ItemGroup><_PortableLegal Include="../../LICENSE;../../THIRD_PARTY_NOTICES.md" /><_PortableLicense Include="../../licenses/**/*" /><_PortableButton Include="../../buttons/*.svg;../../buttons/*.png" /></ItemGroup>
+    <Copy SourceFiles="@(_PortableLegal)" DestinationFiles="@(_PortableLegal->'$(_PortableRoot)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(_PortableLicense)" DestinationFiles="@(_PortableLicense->'$(_PortableRoot)licenses/%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Copy SourceFiles="@(_PortableButton)" DestinationFiles="@(_PortableButton->'$(_PortableRoot)buttons/%(Filename)%(Extension)')" />
+    <Delete Files="$(PublishDir)PodcastHelper.exe" />
+  </Target>
 </Project>

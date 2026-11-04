@@ -17,7 +17,7 @@ public partial class App : Application
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
-        var paths = new PortablePaths(AppContext.BaseDirectory);
+        var paths = new PortablePaths(ApplicationLocation.RootDirectory);
         var fileSystem = new PhysicalFileSystem();
         var store = new PortableDataStore(paths, new JsonDocumentStore(fileSystem), fileSystem);
         var journalStore = new SessionJournalStore(paths, fileSystem);
