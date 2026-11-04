@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<title>timer 1</title>
+<defs>
+ <linearGradient id="frame" x2="0" y2="1"><stop stop-color="#687376"/><stop offset=".07" stop-color="#344247"/><stop offset="1" stop-color="#172126"/></linearGradient>
+ <linearGradient id="cap" x2="0" y2="1"><stop stop-color="#fffdf3"/><stop offset=".09" stop-color="#e4ddca"/><stop offset=".84" stop-color="#e4ddca"/><stop offset="1" stop-color="#b8b19e"/></linearGradient>
+ <linearGradient id="glass" x2="0" y2="1"><stop stop-color="#60736b"/><stop offset=".12" stop-color="#354e47"/><stop offset="1" stop-color="#172f2b"/></linearGradient>
+</defs>
+<rect x="4" y="4" width="504" height="504" rx="38" fill="#0e171a"/>
+<rect x="9" y="7" width="494" height="491" rx="33" fill="url(#frame)" stroke="#7d8987" stroke-width="2"/>
+<rect x="30" y="42" width="452" height="443" rx="28" fill="#101a1e"/>
+<rect x="30" y="27" width="452" height="443" rx="27" fill="url(#cap)" stroke="#b8b19e" stroke-width="2"/>
+<rect x="36" y="33" width="440" height="429" rx="22" fill="none" stroke="#fffdf3" stroke-opacity=".65" stroke-width="3"/>
+<path d="M58 43 H454" stroke="#fffdf3" stroke-opacity=".8" stroke-width="3"/>
+<path d="M59 455 H453" stroke="#b8b19e" stroke-opacity=".7" stroke-width="3"/>
+<g color="#293d43" fill="#293d43" transform="translate(46 12) scale(.82)"><rect x="225" y="99" width="62" height="26" rx="8"/><path d="M256 125 V143 M348 147 L369 126" stroke="#293d43" stroke-width="16"/><circle cx="256" cy="271" r="126" fill="#233a39" stroke="#293d43" stroke-width="17"/><circle cx="256" cy="271" r="111" fill="url(#glass)"/><path d="M177 195 C208 165 294 163 334 193" stroke="#e6efcf" stroke-opacity=".45" stroke-width="5" fill="none"/><text x="256" y="332" text-anchor="middle" font-family="Consolas" font-size="168" font-weight="bold" fill="#cae8b4">1</text></g>
+<text x="256" y="426" text-anchor="middle" font-family="Segoe UI" font-size="46" font-weight="bold" letter-spacing="1" fill="#293d43">TIMER 1</text>
+</svg>

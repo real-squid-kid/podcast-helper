@@ -14,15 +14,20 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer refreshTimer = new() { Interval = TimeSpan.FromMilliseconds(150) };
     private MainViewModel? viewModel;
     private readonly TimerSoundPlayer sound;
+    private readonly MacropadInput macropad;
+    private readonly FocusAttention? focusAttention;
+    private int modalDepth;
     private bool fullScreen;
     public MainWindow()
     {
         InitializeComponent();
+        macropad = new MacropadInput(this, () => viewModel, () => modalDepth > 0);
+        if (Application.Current is { } application) focusAttention = new FocusAttention(application, this);
         sound = new TimerSoundPlayer(new PortablePaths(AppContext.BaseDirectory), message => viewModel?.ReportSessionStatus(message));
         DataContextChanged += OnContextChanged;
         refreshTimer.Tick += async (_, _) => { if (viewModel is not null) await viewModel.PollAsync(); };
         Loaded += (_, _) => { refreshTimer.Start(); SetFullScreen(true); };
-        Closed += (_, _) => { refreshTimer.Stop(); sound.Close(); };
+        Closed += (_, _) => { refreshTimer.Stop(); sound.Close(); macropad.Dispose(); focusAttention?.Dispose(); };
         PreviewKeyDown += OnPreviewKeyDown;
     }
 
@@ -31,10 +36,16 @@ public partial class MainWindow : Window
         if (viewModel is not null) { viewModel.FullScreenRequested -= ToggleFullScreen; viewModel.TimerEnded -= sound.Play; viewModel.UndoApplied -= FlashUndo; }
         viewModel = e.NewValue as MainViewModel; if (viewModel is null) return;
         viewModel.SystemAnimationsEnabled = SystemParameters.ClientAreaAnimation;
-        viewModel.RequestPrompt = vm => { new PromptWindow(vm) { Owner = this }.ShowDialog(); return Task.FromResult(vm.Selected); };
-        viewModel.RequestEditor = vm => { new ScenarioEditorWindow(vm) { Owner = this }.ShowDialog(); return Task.FromResult(vm.Result); };
-        viewModel.RequestSettings = vm => { new SettingsWindow(vm) { Owner = this }.ShowDialog(); return Task.FromResult(vm.Result); };
+        viewModel.RequestPrompt = vm => { ShowOperatorDialog(new PromptWindow(vm)); return Task.FromResult(vm.Selected); };
+        viewModel.RequestEditor = vm => { ShowOperatorDialog(new ScenarioEditorWindow(vm)); return Task.FromResult(vm.Result); };
+        viewModel.RequestSettings = vm => { ShowOperatorDialog(new SettingsWindow(vm)); return Task.FromResult(vm.Result); };
         viewModel.FullScreenRequested += ToggleFullScreen; viewModel.TimerEnded += sound.Play; viewModel.UndoApplied += FlashUndo;
+    }
+    internal void ShowOperatorDialog(Window dialog)
+    {
+        modalDepth++;
+        try { dialog.Owner = this; dialog.ShowDialog(); }
+        finally { modalDepth--; }
     }
     private void FlashUndo()
     {
@@ -45,6 +56,7 @@ public partial class MainWindow : Window
     }
     private async void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
+        if (!IsActive || !IsEnabled || modalDepth > 0) return;
         if (e.Key == Key.Escape && fullScreen) { SetFullScreen(false); e.Handled = true; return; }
         if (e.Key == Key.F11) { ToggleFullScreen(); e.Handled = true; return; }
         if (e.Key == Key.Enter && !e.IsRepeat && Keyboard.Modifiers == ModifierKeys.None && viewModel is not null

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<title>clap</title>
+<defs>
+ <linearGradient id="frame" x2="0" y2="1"><stop stop-color="#687376"/><stop offset=".07" stop-color="#344247"/><stop offset="1" stop-color="#172126"/></linearGradient>
+ <linearGradient id="cap" x2="0" y2="1"><stop stop-color="#fffdf3"/><stop offset=".09" stop-color="#e4ddca"/><stop offset=".84" stop-color="#e4ddca"/><stop offset="1" stop-color="#b8b19e"/></linearGradient>
+ <linearGradient id="glass" x2="0" y2="1"><stop stop-color="#60736b"/><stop offset=".12" stop-color="#354e47"/><stop offset="1" stop-color="#172f2b"/></linearGradient>
+</defs>
+<rect x="4" y="4" width="504" height="504" rx="38" fill="#0e171a"/>
+<rect x="9" y="7" width="494" height="491" rx="33" fill="url(#frame)" stroke="#7d8987" stroke-width="2"/>
+<rect x="30" y="42" width="452" height="443" rx="28" fill="#101a1e"/>
+<rect x="30" y="27" width="452" height="443" rx="27" fill="url(#cap)" stroke="#b8b19e" stroke-width="2"/>
+<rect x="36" y="33" width="440" height="429" rx="22" fill="none" stroke="#fffdf3" stroke-opacity=".65" stroke-width="3"/>
+<path d="M58 43 H454" stroke="#fffdf3" stroke-opacity=".8" stroke-width="3"/>
+<path d="M59 455 H453" stroke="#b8b19e" stroke-opacity=".7" stroke-width="3"/>
+<g color="#293d43" fill="#293d43" transform="translate(46 12) scale(.82)"><g transform="rotate(-12 256 185)"><rect x="116" y="128" width="280" height="67" rx="10" fill="#27363c"/><path d="M135 128 L180 128 L144 195 L116 195 Z M221 128 L267 128 L230 195 L185 195 Z M308 128 L354 128 L317 195 L272 195 Z M395 128 L395 166 L360 195 L359 195 Z" fill="#e9dfc4"/></g><rect x="116" y="218" width="280" height="155" rx="14"/><path d="M138 250 H374 M138 282 H374 M138 314 H290" stroke="#bcb7a5" stroke-width="7" fill="none"/></g>
+<text x="256" y="426" text-anchor="middle" font-family="Segoe UI" font-size="46" font-weight="bold" letter-spacing="1" fill="#293d43">CLAP</text>
+</svg>

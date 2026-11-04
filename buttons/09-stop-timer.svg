@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<title>stop timer</title>
+<defs>
+ <linearGradient id="frame" x2="0" y2="1"><stop stop-color="#687376"/><stop offset=".07" stop-color="#344247"/><stop offset="1" stop-color="#172126"/></linearGradient>
+ <linearGradient id="cap" x2="0" y2="1"><stop stop-color="#f5baa2"/><stop offset=".09" stop-color="#cb7b65"/><stop offset=".84" stop-color="#cb7b65"/><stop offset="1" stop-color="#915043"/></linearGradient>
+ <linearGradient id="glass" x2="0" y2="1"><stop stop-color="#60736b"/><stop offset=".12" stop-color="#354e47"/><stop offset="1" stop-color="#172f2b"/></linearGradient>
+</defs>
+<rect x="4" y="4" width="504" height="504" rx="38" fill="#0e171a"/>
+<rect x="9" y="7" width="494" height="491" rx="33" fill="url(#frame)" stroke="#7d8987" stroke-width="2"/>
+<rect x="30" y="42" width="452" height="443" rx="28" fill="#101a1e"/>
+<rect x="30" y="27" width="452" height="443" rx="27" fill="url(#cap)" stroke="#915043" stroke-width="2"/>
+<rect x="36" y="33" width="440" height="429" rx="22" fill="none" stroke="#f5baa2" stroke-opacity=".65" stroke-width="3"/>
+<path d="M58 43 H454" stroke="#f5baa2" stroke-opacity=".8" stroke-width="3"/>
+<path d="M59 455 H453" stroke="#915043" stroke-opacity=".7" stroke-width="3"/>
+<g color="#512e29" fill="#512e29" transform="translate(46 12) scale(.82)"><circle cx="256" cy="263" r="128" fill="none" stroke="currentColor" stroke-width="17"/><rect x="229" y="92" width="54" height="28" rx="6"/><path d="M256 120 V137" stroke="currentColor" stroke-width="17"/><rect x="196" y="203" width="120" height="120" rx="12"/></g>
+<text x="256" y="426" text-anchor="middle" font-family="Segoe UI" font-size="46" font-weight="bold" letter-spacing="1" fill="#512e29">STOP TIMER</text>
+</svg>

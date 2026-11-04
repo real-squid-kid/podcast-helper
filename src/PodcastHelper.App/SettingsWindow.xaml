@@ -9,6 +9,28 @@
         <DockPanel><Border RenderTransformOrigin="0.5,0.5" RenderTransform="{StaticResource BadgeTilt}" Effect="{StaticResource BadgeShadow}" Width="46" Height="46" VerticalAlignment="Top" Background="{StaticResource AmberCap}" CornerRadius="5" BorderBrush="#B79A64" BorderThickness="1" Margin="0,0,16,0"><controls:StudioIcon Kind="settings" Width="27" Height="27" /></Border><TextBlock Text="Settings" Style="{StaticResource DialogTitle}" Margin="0,3,0,0" /></DockPanel>
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,10,0"><StackPanel>
             <Border Background="#E4E0D1" BorderBrush="#C6C3B4" BorderThickness="1" CornerRadius="4" Padding="15,12" Margin="0,0,0,22"><CheckBox Content="I have a macropad" IsChecked="{Binding HasMacropad}" FontSize="15" FontWeight="SemiBold" /></Border>
+            <Expander x:Name="MacropadSetup" Header="Macropad setup" Visibility="{Binding HasMacropad, Converter={StaticResource Bool}}" Margin="0,0,0,22" FontSize="15">
+                <StackPanel Margin="0,12,0,0">
+                    <TextBlock Text="Program each pad key to send Ctrl+Alt+Shift plus the key shown below. Keep PodcastHelper in focus." TextWrapping="Wrap" Margin="0,0,0,8" />
+                    <TextBlock Text="{Binding MacropadLayoutNote}" Foreground="#5A655F" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,12" />
+                    <Border Background="{StaticResource Metal}" BorderBrush="#172023" BorderThickness="2" CornerRadius="8" Padding="12" HorizontalAlignment="Center">
+                        <Viewbox Stretch="Uniform" StretchDirection="DownOnly">
+                            <ItemsControl ItemsSource="{Binding MacropadBindings}" Width="560"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="3" Columns="5" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate><DataTemplate>
+                                    <Grid Width="112" Height="126" ToolTip="{Binding Shortcut}">
+                                        <Image Source="{Binding ImagePath}" Width="100" Height="100" VerticalAlignment="Top" RenderOptions.BitmapScalingMode="HighQuality" />
+                                        <TextBlock Text="{Binding Key}" FontFamily="Consolas" FontWeight="Bold" FontSize="13" Foreground="#52605A" Margin="17,10,0,0" VerticalAlignment="Top" Visibility="{Binding IsAssigned, Converter={StaticResource Bool}}" />
+                                        <TextBlock Text="{Binding Label}" FontSize="13" Foreground="#F4EEDC" TextAlignment="Center" VerticalAlignment="Top" Margin="2,103,2,0" TextTrimming="CharacterEllipsis" ToolTip="{Binding Label}" />
+                                    </Grid>
+                                </DataTemplate></ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Viewbox>
+                    </Border>
+                    <Expander Header="Shortcut list" Margin="0,12,0,0" FontSize="14"><ItemsControl ItemsSource="{Binding MacropadShortcuts}" Margin="0,10,0,0">
+                        <ItemsControl.ItemTemplate><DataTemplate><Grid Margin="0,3"><Grid.ColumnDefinitions><ColumnDefinition Width="210" /><ColumnDefinition /></Grid.ColumnDefinitions><TextBlock Text="{Binding Shortcut}" FontFamily="Consolas" /><TextBlock Grid.Column="1" Text="{Binding Label}" TextWrapping="Wrap" /></Grid></DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl></Expander>
+                </StackPanel>
+            </Expander>
             <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="30" /><ColumnDefinition /></Grid.ColumnDefinitions>
                 <StackPanel><TextBlock Text="Session" Style="{StaticResource DialogSection}" />
                     <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="14" /><ColumnDefinition /></Grid.ColumnDefinitions>
@@ -34,15 +56,15 @@
             <Border BorderBrush="#CBC8B9" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,18,0,0"><StackPanel><TextBlock Text="Moments" Style="{StaticResource DialogSection}" />
                 <ItemsControl ItemsSource="{Binding Categories}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="5" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate><DataTemplate><Border Background="#E4E0D1" BorderBrush="#C6C3B4" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,8,0"><StackPanel>
-                        <TextBox Text="{Binding Icon}" FontSize="24" TextAlignment="Center" Margin="0,0,0,8" ToolTip="Moment icon" AutomationProperties.Name="Moment icon" />
-                        <TextBox Text="{Binding Name}" TextAlignment="Center" FontSize="13" Padding="4,7" Margin="0" ToolTip="Moment name" AutomationProperties.Name="Moment name" />
+                        <TextBox Text="{Binding Icon, UpdateSourceTrigger=PropertyChanged}" FontSize="24" TextAlignment="Center" Margin="0,0,0,8" ToolTip="Moment icon" AutomationProperties.Name="Moment icon" />
+                        <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Center" FontSize="13" Padding="4,7" Margin="0" ToolTip="Moment name" AutomationProperties.Name="Moment name" />
                     </StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate>
                 </ItemsControl>
             </StackPanel></Border>
             <TextBlock Text="{Binding Disclaimer}" Foreground="#7A8175" FontSize="11" TextWrapping="Wrap" Margin="0,18,0,0" />
         </StackPanel></ScrollViewer>
         <StackPanel Grid.Row="2" Margin="0,16,0,0"><TextBlock Text="{Binding Error}" Foreground="#A04431" TextWrapping="Wrap" Margin="0,0,0,8" />
-            <DockPanel><TextBlock Text="Applies to new sessions." Foreground="#6B766D" FontSize="12" VerticalAlignment="Center" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource PaperKey}" Margin="0,0,12,0" /><Button Content="Save settings" Command="{Binding SaveCommand}" Style="{StaticResource PrimaryKey}" /></StackPanel></DockPanel>
+            <DockPanel><TextBlock Text="Timing and moments apply to new sessions." TextWrapping="Wrap" Foreground="#6B766D" FontSize="12" VerticalAlignment="Center" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource PaperKey}" Margin="0,0,12,0" /><Button Content="Save settings" Command="{Binding SaveCommand}" Style="{StaticResource PrimaryKey}" /></StackPanel></DockPanel>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0" Visibility="{Binding ShowMouseHint, Converter={StaticResource Bool}}"><controls:StudioIcon Kind="mouse" Foreground="#6B726B" Width="14" Height="16" Margin="0,0,6,0" /><TextBlock Text="Use mouse" Foreground="#6B726B" FontSize="12" /></StackPanel>
         </StackPanel>
     </Grid>

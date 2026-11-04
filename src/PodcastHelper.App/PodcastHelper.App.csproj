@@ -7,6 +7,7 @@
     <AssemblyName>PodcastHelper</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
+    <Resource Include="../../buttons/*.png" Link="buttons/%(Filename)%(Extension)" />
     <ProjectReference Include="../PodcastHelper.Core/PodcastHelper.Core.csproj" />
     <ProjectReference Include="../PodcastHelper.Infrastructure/PodcastHelper.Infrastructure.csproj" />
   </ItemGroup>

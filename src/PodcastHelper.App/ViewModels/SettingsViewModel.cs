@@ -7,11 +7,12 @@ using PodcastHelper.Core.Validation;
 
 namespace PodcastHelper.App.ViewModels;
 
-public sealed class CategoryDraft
+public sealed class CategoryDraft : ObservableObject
 {
+    private string name = "", icon = "";
     public required string Id { get; init; }
-    public required string Name { get; set; }
-    public required string Icon { get; set; }
+    public required string Name { get => name; set => SetProperty(ref name, value); }
+    public required string Icon { get => icon; set => SetProperty(ref icon, value); }
 }
 public sealed record StrategyChoice(OverrunDistribution Value, string Label);
 public sealed record SoundChoice(TimerSound Value, string Label);
@@ -19,6 +20,8 @@ public sealed record AnimationChoice(AnimationPreference Value, string Label);
 public sealed class SettingsViewModel : ObservableObject
 {
     private readonly AppSettings source;
+    private readonly AppSettings? activeSettings;
+    private string preset1 = "", preset2 = "", preset3 = "";
     private string error = "", soundFileName;
     public bool ShowMouseHint => source.HasMacropad || HasMacropad;
     private bool hasMacropad;
@@ -27,9 +30,23 @@ public sealed class SettingsViewModel : ObservableObject
     public string Fps { get; set; }
     public string YellowMinutes { get; set; }
     public string RedMinutes { get; set; }
-    public string Preset1 { get; set; }
-    public string Preset2 { get; set; }
-    public string Preset3 { get; set; }
+    public string Preset1 { get => preset1; set { if (SetProperty(ref preset1, value)) RefreshMacropad(); } }
+    public string Preset2 { get => preset2; set { if (SetProperty(ref preset2, value)) RefreshMacropad(); } }
+    public string Preset3 { get => preset3; set { if (SetProperty(ref preset3, value)) RefreshMacropad(); } }
+    private void RefreshMacropad() { Notify(nameof(MacropadBindings)); Notify(nameof(MacropadShortcuts)); }
+    public string MacropadLayoutNote => activeSettings is null ? "Layout for new sessions" : "Layout for the current session · edited presets and moments apply to new sessions";
+    public IEnumerable<MacropadBinding> MacropadShortcuts => MacropadBindings.Where(x => x.IsAssigned);
+    public IEnumerable<MacropadBinding> MacropadBindings => MacropadLayout.Bindings.Select(binding =>
+    {
+        if (binding.CategoryId is { } id)
+        {
+            var saved = activeSettings?.Categories.FirstOrDefault(x => x.Id == id);
+            var draft = Categories.FirstOrDefault(x => x.Id == id);
+            return binding with { Label = saved?.Name ?? draft?.Name ?? binding.Label, Icon = saved is null ? draft?.Icon ?? binding.Icon : DisplayFormats.Icon(saved.Icon) };
+        }
+        int preset = binding.Action switch { MacropadAction.TimerPreset1 => 0, MacropadAction.TimerPreset2 => 1, MacropadAction.TimerPreset3 => 2, _ => -1 };
+        return preset < 0 ? binding : binding with { Label = $"Timer · {(activeSettings is null ? new[] { Preset1, Preset2, Preset3 }[preset] : DisplayFormats.InputDuration(activeSettings.TimerPresetSeconds[preset]))}" };
+    });
     public OverrunDistribution Distribution { get; set; }
     private TimerSound sound;
     public TimerSound Sound { get => sound; set { if (SetProperty(ref sound, value)) Notify(nameof(UsesMp3)); } }
@@ -49,14 +66,19 @@ public sealed class SettingsViewModel : ObservableObject
     public const string TimecodeDisclaimer = "SMPTE timecode is predicted based on computer time. FF is always :00.";
     public string Disclaimer => TimecodeDisclaimer;
 
-    public SettingsViewModel(AppSettings settings)
+    public SettingsViewModel(AppSettings settings, AppSettings? activeSettings = null)
     {
+        this.activeSettings = activeSettings;
         source = settings; HasMacropad = settings.HasMacropad; MarkerOffset = settings.MarkerOffsetSeconds.ToString(CultureInfo.InvariantCulture);
         Fps = settings.CameraFps.ToString(CultureInfo.InvariantCulture); YellowMinutes = settings.SegmentWarningMinutes.ToString(CultureInfo.InvariantCulture);
         RedMinutes = settings.SegmentWrapUpMinutes.ToString(CultureInfo.InvariantCulture);
         Preset1 = DisplayFormats.InputDuration(settings.TimerPresetSeconds[0]); Preset2 = DisplayFormats.InputDuration(settings.TimerPresetSeconds[1]); Preset3 = DisplayFormats.InputDuration(settings.TimerPresetSeconds[2]);
         Distribution = settings.OverrunDistribution; Sound = settings.TimerEndingSound; Animations = settings.Animations; soundFileName = settings.TimerSoundFileName ?? "";
-        foreach (var category in settings.Categories) Categories.Add(new() { Id = category.Id, Name = category.Name, Icon = DisplayFormats.Icon(category.Icon) });
+        foreach (var category in settings.Categories)
+        {
+            var draft = new CategoryDraft { Id = category.Id, Name = category.Name, Icon = DisplayFormats.Icon(category.Icon) };
+            draft.PropertyChanged += (_, _) => RefreshMacropad(); Categories.Add(draft);
+        }
         SaveCommand = new RelayCommand(() =>
         {
             try

@@ -68,6 +68,20 @@ public sealed class MainViewModel : ObservableObject
     public bool IsInitialized { get => isInitialized; private set => SetProperty(ref isInitialized, value); }
     public bool IsBusy { get => isBusy; private set { if (SetProperty(ref isBusy, value)) { RefreshCommands(); Notify(nameof(CanWrap)); Notify(nameof(CanRetryStartup)); Notify(nameof(CanRedo)); } } }
     public AppSettings? Settings { get; private set; }
+    public bool HasMacropad => Settings?.HasMacropad == true;
+    public async Task ExecuteMacropadAsync(MacropadAction action)
+    {
+        if (!HasMacropad || IsBusy || CheckingRecovery) return;
+        var binding = MacropadLayout.Bindings.FirstOrDefault(x => x.Action == action);
+        ICommand? command = binding?.CategoryId is { } id ? MomentButtons.FirstOrDefault(x => x.Id == id)?.Command : action switch
+        {
+            MacropadAction.TimerPreset1 => TimerPreset1Command, MacropadAction.TimerPreset2 => TimerPreset2Command,
+            MacropadAction.TimerPreset3 => TimerPreset3Command, MacropadAction.TimerStop => TimerStopCommand,
+            MacropadAction.Pause => PauseCommand, MacropadAction.NextSegment => NextCommand,
+            MacropadAction.Undo => UndoCommand, MacropadAction.OpenClap => ClapCommand, _ => null
+        };
+        if (command is AsyncRelayCommand asyncCommand && command.CanExecute(null)) await asyncCommand.ExecuteAsync();
+    }
     public Session? CurrentSession => current;
     public bool SystemAnimationsEnabled { get; set; } = true;
     public bool ReduceAnimations => Settings?.Animations == AnimationPreference.Reduced || Settings?.Animations == AnimationPreference.System && !SystemAnimationsEnabled;
@@ -324,7 +338,7 @@ public sealed class MainViewModel : ObservableObject
     private async Task EditSettingsAsync()
     {
         if (Settings is null || RequestSettings is null) return;
-        var vm = new SettingsViewModel(Settings);
+        var vm = new SettingsViewModel(Settings, current?.SettingsSnapshot);
         if (paths is not null && Directory.Exists(paths.SoundsDirectory))
             foreach (string file in await Task.Run(() => Directory.GetFiles(paths.SoundsDirectory, "*.mp3"))) vm.AvailableSounds.Add(Path.GetFileName(file));
         var edited = await RequestSettings(vm); if (edited is null) return;
@@ -493,7 +507,7 @@ public sealed class MainViewModel : ObservableObject
     private void RefreshCommands() { foreach (var command in commands) command.Refresh(); }
     private void RefreshPresentation()
     {
-        RefreshAlert(); Notify(nameof(CanRedo)); Notify(nameof(RedoLabel));
+        RefreshAlert(); Notify(nameof(CanRedo)); Notify(nameof(RedoLabel)); Notify(nameof(HasMacropad));
         Notify(nameof(UndoTooltip));
         Notify(nameof(CanWrap));
         foreach (string name in new[] { nameof(HasSession), nameof(IdleState), nameof(CanCorrectPause), nameof(RecordingChoiceLabel), nameof(ReserveCaption), nameof(PauseIcon), nameof(WarningVisible) }) Notify(name);

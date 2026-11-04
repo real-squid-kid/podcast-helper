@@ -43,7 +43,7 @@ public partial class App : Application
                     else
                     {
                         var recovery = new RecoveryViewModel(plan, new SystemClock(), viewModel.Settings!.HasMacropad);
-                        new RecoveryWindow(recovery) { Owner = MainWindow }.ShowDialog();
+                        ((MainWindow)MainWindow).ShowOperatorDialog(new RecoveryWindow(recovery));
                         if (recovery.StartAnew) { await controller.AbandonAsync(); continue; }
                         if (recovery.CorrectedSession is null)
                         {
