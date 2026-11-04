@@ -87,6 +87,14 @@ public sealed class DurableSessionController : IAsyncDisposable
     public Task<ImmutableArray<SessionEvent>> ReadEventsAsync(CancellationToken ct = default) => RunAsync(() =>
         Task.FromResult(records.SelectMany(x => x.Events).ToImmutableArray()), ct);
 
+    public Task<SessionArchive> CaptureArchiveAsync(CancellationToken ct = default) => RunAsync(() =>
+    {
+        if (IsFaulted || NeedsRecovery || engine.CaptureCheckpoint().Session.State != SessionState.Finished)
+            throw new InvalidOperationException("Finish and save this session before exporting results.");
+        var snapshot = durable with { Engine = engine.CaptureCheckpoint() };
+        return Task.FromResult(new SessionArchive(new(records.ToImmutableArray(), snapshot, false, false, journalPath)));
+    }, ct);
+
     public Task<RecoveryPlan> GetRecoveryPlanAsync(CancellationToken ct = default) => RunAsync(() =>
     {
         if (!NeedsRecovery) throw new InvalidOperationException("No recovery decision is pending.");

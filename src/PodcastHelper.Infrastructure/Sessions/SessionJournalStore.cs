@@ -100,6 +100,7 @@ public sealed class SessionJournalStore(PortablePaths paths, IJournalFileSystem 
             using (lease)
             try
             {
+                if (!await HasJournalAsync(id, ct).ConfigureAwait(false)) continue;
                 var loaded = await ReadAsync(id, ct).ConfigureAwait(false);
                 result.Add(new(id, null, false, loaded.State.Archived, loaded.State.Engine.Session.State, loaded.Records[^1].UtcTimestamp));
             }

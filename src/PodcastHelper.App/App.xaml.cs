@@ -6,6 +6,7 @@ using PodcastHelper.Infrastructure.Time;
 using PodcastHelper.Core.Models;
 using System.IO;
 using System.Windows.Threading;
+using PodcastHelper.Infrastructure.Export;
 
 namespace PodcastHelper.App;
 
@@ -20,7 +21,7 @@ public partial class App : Application
         var fileSystem = new PhysicalFileSystem();
         var store = new PortableDataStore(paths, new JsonDocumentStore(fileSystem), fileSystem);
         var journalStore = new SessionJournalStore(paths, fileSystem);
-        var viewModel = new MainViewModel(store, journalStore, paths) { CheckingRecovery = true };
+        var viewModel = new MainViewModel(store, journalStore, paths, historyStore: new SessionHistoryStore(paths, fileSystem), exporter: new SessionExportService(fileSystem)) { CheckingRecovery = true };
         mainViewModel = viewModel;
         MainWindow = new MainWindow { DataContext = viewModel };
         MainWindow.Closing += OnMainWindowClosing;

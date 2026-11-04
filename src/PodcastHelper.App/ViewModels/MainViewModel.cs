@@ -9,6 +9,7 @@ using PodcastHelper.Core.Validation;
 using PodcastHelper.Infrastructure.Sessions;
 using PodcastHelper.Infrastructure.Storage;
 using PodcastHelper.Infrastructure.Time;
+using PodcastHelper.Infrastructure.Export;
 
 namespace PodcastHelper.App.ViewModels;
 
@@ -23,6 +24,11 @@ public sealed class MainViewModel : ObservableObject
     private readonly SessionJournalStore? journalStore;
     private readonly PortablePaths? paths;
     private readonly IClock clock;
+    private readonly SessionHistoryStore? historyStore;
+    private readonly SessionExportService? exporter;
+    private string exportFolder;
+    private string exportStatus = "";
+    private bool exportAlert;
     private readonly List<AsyncRelayCommand> commands = [];
     private readonly HashSet<Guid> heardSounds = [];
     private ImmutableArray<SessionEvent> events = [];
@@ -38,6 +44,11 @@ public sealed class MainViewModel : ObservableObject
     public Func<PromptViewModel, Task<int?>>? RequestPrompt { get; set; }
     public Func<ScenarioEditorViewModel, Task<Scenario?>>? RequestEditor { get; set; }
     public Func<SettingsViewModel, Task<AppSettings?>>? RequestSettings { get; set; }
+    public Func<HistoryViewModel, Task>? RequestHistory { get; set; }
+    public Func<string, Task<string?>>? RequestExportFolder { get; set; }
+    public Action<string>? OpenExportFolder { get; set; }
+    public string ExportFolder => exportFolder;
+    public string ExportStatus { get => exportStatus; private set => SetProperty(ref exportStatus, value); }
     public event Action? FullScreenRequested;
     public event Action<AppSettings>? TimerEnded;
     public event Action? UndoApplied;
@@ -151,6 +162,11 @@ public sealed class MainViewModel : ObservableObject
     public ICommand NewScenarioCommand { get; }
     public ICommand EditScenarioCommand { get; }
     public ICommand SettingsCommand { get; }
+    public ICommand HistoryCommand { get; }
+    public ICommand ExportCsvCommand { get; }
+    public ICommand ExportXlsCommand { get; }
+    public ICommand ExportFolderCommand { get; }
+    public ICommand OpenExportFolderCommand { get; }
     public ICommand ReadyCommand { get; }
     public ICommand ClapCommand { get; }
     public ICommand PauseCommand { get; }
@@ -176,12 +192,35 @@ public sealed class MainViewModel : ObservableObject
     public ICommand SaveScenarioChangesCommand { get; }
     public ICommand FullScreenCommand { get; }
 
-    public MainViewModel(PortableDataStore dataStore, SessionJournalStore? journalStore = null, PortablePaths? paths = null, IClock? clock = null)
+    public MainViewModel(PortableDataStore dataStore, SessionJournalStore? journalStore = null, PortablePaths? paths = null, IClock? clock = null,
+        SessionHistoryStore? historyStore = null, SessionExportService? exporter = null)
     {
         this.dataStore = dataStore; this.journalStore = journalStore; this.paths = paths; this.clock = clock ?? new SystemClock();
+        this.historyStore = historyStore; this.exporter = exporter; exportFolder = paths?.ExportsDirectory ?? "";
         NewScenarioCommand = Make(() => EditSourceAsync(true), () => IsInitialized && IsStandby);
         EditScenarioCommand = Make(() => EditSourceAsync(false), () => IsInitialized && IsStandby && SelectedScenario is not null);
         SettingsCommand = Make(EditSettingsAsync, () => IsInitialized);
+        HistoryCommand = Make(async () =>
+        {
+            if (RequestHistory is null || historyStore is null || exporter is null) return;
+            try
+            {
+                var vm = new HistoryViewModel(historyStore, exporter, exportFolder, HasMacropad, current); await vm.RefreshAsync(); await RequestHistory(vm);
+                exportFolder = vm.ExportFolder; Notify(nameof(ExportFolder));
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            { SetAlert("Session history is unavailable.", false, "Restore read access to the application folder, then open history again."); }
+        }, () => IsInitialized && historyStore is not null);
+        ExportCsvCommand = Make(() => ExportAsync(SessionExportFormat.Csv), () => Usable && IsFinished && exporter is not null);
+        ExportXlsCommand = Make(() => ExportAsync(SessionExportFormat.Xls), () => Usable && IsFinished && exporter is not null);
+        ExportFolderCommand = Make(async () => { if (RequestExportFolder is not null && await RequestExportFolder(exportFolder) is { } folder) { exportFolder = folder; ExportStatus = ""; Notify(nameof(ExportFolder)); } }, () => paths is not null);
+        OpenExportFolderCommand = Make(() =>
+        {
+            try { OpenExportFolder?.Invoke(exportFolder); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+            { SetAlert("Export folder is not available.", false, "Export a session first, or choose an existing folder with read and write access."); }
+            return Task.CompletedTask;
+        }, () => paths is not null);
         ReadyCommand = Make(StartSessionAsync, () => IsInitialized && IsStandby && SelectedScenario is not null && journalStore is not null);
         ClapCommand = Make(OpenClapAsync, () => Usable && current?.State is SessionState.Ready or SessionState.Recording or SessionState.AwaitingClap);
         PauseCommand = Make(PauseOrResumeAsync, () => Usable && current?.State is SessionState.Recording or SessionState.Paused);
@@ -344,8 +383,24 @@ public sealed class MainViewModel : ObservableObject
         var edited = await RequestSettings(vm); if (edited is null) return;
         await dataStore.SaveSettingsAsync(edited); Settings = edited; RebuildMomentButtons(); RefreshPresentation(); StatusMessage = "Settings saved. Active session settings are retained.";
     }
+    private async Task ExportAsync(SessionExportFormat format)
+    {
+        if (Controller is null || exporter is null) return;
+        try
+        {
+            ExportStatus = $"Saving {format.ToString().ToUpperInvariant()}…";
+            var archive = await Controller.CaptureArchiveAsync(); string name = SessionExportService.FileName(archive.Session, format);
+            await exporter.ExportAsync(archive, format, Path.Combine(exportFolder, name));
+            ExportStatus = $"{format.ToString().ToUpperInvariant()} saved";
+            if (exportAlert) { StatusMessage = "Export saved."; exportAlert = false; }
+        }
+        catch (ExportLimitException ex) { ExportStatus = ""; exportAlert = true; SetAlert(ex.Message, false, "Select Export CSV to save the full session."); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException or System.Security.SecurityException)
+        { ExportStatus = ""; exportAlert = true; SetAlert("Export could not be saved. Session history is safe.", true, "Check folder access and free space, or choose another export folder, then try again."); }
+    }
     private async Task StartSessionAsync()
     {
+        ExportStatus = ""; exportAlert = false;
         if (SelectedScenario is null || Settings is null || journalStore is null) return;
         var created = await DurableSessionController.CreateAsync(journalStore, new SessionFactory(clock).Create(SelectedScenario, Settings), clock);
         await AttachControllerAsync(created); await CommitAsync(new(SessionCommandKind.Ready)); StatusMessage = "Ready. Press Enter on the first clap.";

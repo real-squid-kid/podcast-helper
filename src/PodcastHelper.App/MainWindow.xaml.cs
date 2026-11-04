@@ -39,6 +39,9 @@ public partial class MainWindow : Window
         viewModel.RequestPrompt = vm => { ShowOperatorDialog(new PromptWindow(vm)); return Task.FromResult(vm.Selected); };
         viewModel.RequestEditor = vm => { ShowOperatorDialog(new ScenarioEditorWindow(vm)); return Task.FromResult(vm.Result); };
         viewModel.RequestSettings = vm => { ShowOperatorDialog(new SettingsWindow(vm)); return Task.FromResult(vm.Result); };
+        viewModel.RequestHistory = vm => { ShowOperatorDialog(new HistoryWindow(vm)); return Task.CompletedTask; };
+        viewModel.RequestExportFolder = folder => HistoryWindow.ChooseFolderAsync(this, folder, viewModel.HasMacropad);
+        viewModel.OpenExportFolder = HistoryWindow.OpenExportFolder;
         viewModel.FullScreenRequested += ToggleFullScreen; viewModel.TimerEnded += sound.Play; viewModel.UndoApplied += FlashUndo;
     }
     internal void ShowOperatorDialog(Window dialog)

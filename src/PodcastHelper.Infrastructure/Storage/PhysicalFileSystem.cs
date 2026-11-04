@@ -1,9 +1,10 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using PodcastHelper.Core.Abstractions;
 
 namespace PodcastHelper.Infrastructure.Storage;
 
-public sealed class PhysicalFileSystem : IJournalFileSystem
+public sealed class PhysicalFileSystem : IArchiveFileSystem
 {
     private static readonly UTF8Encoding Utf8 = new(false, true);
 
@@ -21,6 +22,9 @@ public sealed class PhysicalFileSystem : IJournalFileSystem
     }
 
     public async Task WriteTextAtomicallyAsync(string path, string content, CancellationToken cancellationToken = default)
+        => await WriteBytesAtomicallyAsync(path, Utf8.GetBytes(content), cancellationToken).ConfigureAwait(false);
+
+    public async Task WriteBytesAtomicallyAsync(string path, ReadOnlyMemory<byte> bytes, CancellationToken cancellationToken = default)
     {
         string directory = Path.GetDirectoryName(path) ?? throw new ArgumentException("An absolute file path is required.", nameof(path));
         cancellationToken.ThrowIfCancellationRequested();
@@ -31,7 +35,7 @@ public sealed class PhysicalFileSystem : IJournalFileSystem
             await using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None,
                 4096, FileOptions.Asynchronous | FileOptions.WriteThrough))
             {
-                await stream.WriteAsync(Utf8.GetBytes(content), cancellationToken).ConfigureAwait(false);
+                await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
                 await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
                 stream.Flush(flushToDisk: true);
             }
@@ -47,6 +51,24 @@ public sealed class PhysicalFileSystem : IJournalFileSystem
             catch (UnauthorizedAccessException) { }
         }
     }
+
+    public Task DeleteSessionDataAsync(string directory, CancellationToken ct = default) => Task.Run(() =>
+    {
+        ct.ThrowIfCancellationRequested();
+        directory = Path.GetFullPath(directory);
+        if ((File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0) throw new IOException("Session directory is a link.");
+        foreach (string entry in Directory.GetFiles(directory))
+        {
+            ct.ThrowIfCancellationRequested();
+            if (!Path.GetFullPath(entry).StartsWith(directory.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                throw new IOException("Session deletion escaped its directory.");
+            string name = Path.GetFileName(entry);
+            bool owned = name.Equals("session.json", StringComparison.OrdinalIgnoreCase) || name.Equals("recovery.json", StringComparison.OrdinalIgnoreCase)
+                || Regex.IsMatch(name, @"^events-[0-9]{6,}\.jsonl$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase)
+                || Regex.IsMatch(name, @"^\.(session|recovery)\.json\.[0-9a-f]{32}\.tmp$", RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
+            if (owned) File.Delete(entry);
+        }
+    }, ct);
 
     public async Task CheckWriteAccessAsync(string directory, CancellationToken cancellationToken = default)
     {
