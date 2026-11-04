@@ -27,7 +27,8 @@ public sealed record PauseContext(EventTime Started, bool? RecordingStopped = nu
 public enum SessionEventType
 {
     Ready, Clap, TakeStarted, TakeEnded, Pause, PauseAnswered, Resume,
-    SegmentStarted, SegmentFinished, SegmentReordered, SessionFinished, Undo, Recovered
+    SegmentStarted, SegmentFinished, SegmentReordered, SessionFinished, Undo, Recovered,
+    TimerStarted, TimerStopped, TimerAdjusted, TimerFinished, MomentAdded, MomentMerged, MomentRemoved, SegmentAdded, SegmentRemoved, ScenarioEdited, MetadataCorrected, Redo
 }
 
 public sealed record SessionEvent(Guid Id, SessionEventType Type, EventTime Time, string? Detail = null);

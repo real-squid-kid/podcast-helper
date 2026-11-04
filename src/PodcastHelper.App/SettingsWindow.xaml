@@ -1,0 +1,49 @@
+<Window x:Class="PodcastHelper.App.SettingsWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:PodcastHelper.App.Controls"
+        Title="Settings" Width="940" Height="820" MinWidth="800" MinHeight="650" WindowStartupLocation="CenterOwner" Background="#F1EDDF" Foreground="#29343A" FontFamily="Segoe UI">
+    <Window.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="StudioTheme.xaml" /></ResourceDictionary.MergedDictionaries>
+        <Style TargetType="TextBox" BasedOn="{StaticResource Field}"><Setter Property="Margin" Value="0,5,0,12" /></Style>
+        <Style TargetType="ComboBox" BasedOn="{StaticResource SelectField}"><Setter Property="Margin" Value="0,5,0,12" /></Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock"><Setter Property="FontSize" Value="13" /><Setter Property="Foreground" Value="#5A655F" /></Style>
+    </ResourceDictionary></Window.Resources>
+    <Grid Margin="30,26"><Grid.RowDefinitions><RowDefinition Height="72" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <DockPanel><Border RenderTransformOrigin="0.5,0.5" RenderTransform="{StaticResource BadgeTilt}" Effect="{StaticResource BadgeShadow}" Width="46" Height="46" VerticalAlignment="Top" Background="{StaticResource AmberCap}" CornerRadius="5" BorderBrush="#B79A64" BorderThickness="1" Margin="0,0,16,0"><controls:StudioIcon Kind="settings" Width="27" Height="27" /></Border><TextBlock Text="Settings" Style="{StaticResource DialogTitle}" Margin="0,3,0,0" /></DockPanel>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,10,0"><StackPanel>
+            <Border Background="#E4E0D1" BorderBrush="#C6C3B4" BorderThickness="1" CornerRadius="4" Padding="15,12" Margin="0,0,0,22"><CheckBox Content="I have a macropad" IsChecked="{Binding HasMacropad}" FontSize="15" FontWeight="SemiBold" /></Border>
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="30" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock Text="Session" Style="{StaticResource DialogSection}" />
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="14" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Text="Marker offset · seconds back" Style="{StaticResource FieldLabel}" /><TextBox Text="{Binding MarkerOffset}" AutomationProperties.Name="Marker offset in seconds" /></StackPanel>
+                        <StackPanel Grid.Column="2"><TextBlock Text="Camera FPS" Style="{StaticResource FieldLabel}" /><TextBox Text="{Binding Fps}" AutomationProperties.Name="Camera FPS" /></StackPanel>
+                    </Grid>
+                    <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="14" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                        <StackPanel><TextBlock Text="Yellow warning · minutes" Style="{StaticResource FieldLabel}" /><TextBox Text="{Binding YellowMinutes}" AutomationProperties.Name="Yellow warning in minutes" /></StackPanel>
+                        <StackPanel Grid.Column="2"><TextBlock Text="Red warning · minutes" Style="{StaticResource FieldLabel}" /><TextBox Text="{Binding RedMinutes}" AutomationProperties.Name="Red warning in minutes" /></StackPanel>
+                    </Grid>
+                    <TextBlock Text="When a segment runs over" Style="{StaticResource FieldLabel}" /><ComboBox ItemsSource="{Binding Strategies}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Distribution}" />
+                    <TextBlock Text="Animations" Style="{StaticResource FieldLabel}" /><ComboBox ItemsSource="{Binding AnimationChoices}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Animations}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2"><TextBlock Text="Timer" Style="{StaticResource DialogSection}" />
+                    <TextBlock Text="Presets · minutes : seconds" Style="{StaticResource FieldLabel}" />
+                    <UniformGrid Columns="3"><TextBox Text="{Binding Preset1}" Margin="0,5,8,12" FontFamily="Consolas" AutomationProperties.Name="Timer preset 1" /><TextBox Text="{Binding Preset2}" Margin="0,5,8,12" FontFamily="Consolas" AutomationProperties.Name="Timer preset 2" /><TextBox Text="{Binding Preset3}" FontFamily="Consolas" AutomationProperties.Name="Timer preset 3" /></UniformGrid>
+                    <TextBlock Text="Sound at zero" Style="{StaticResource FieldLabel}" /><ComboBox ItemsSource="{Binding Sounds}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding Sound}" />
+                    <StackPanel Visibility="{Binding UsesMp3, Converter={StaticResource Bool}}"><TextBlock Text="MP3 file" Style="{StaticResource FieldLabel}" /><ComboBox ItemsSource="{Binding AvailableSounds}" SelectedItem="{Binding SoundFileName}" />
+                    <TextBlock Text="Add your MP3 to the sounds folder, then reopen Settings." Foreground="#7A8175" FontSize="12" TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+            <Border BorderBrush="#CBC8B9" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,18,0,0"><StackPanel><TextBlock Text="Moments" Style="{StaticResource DialogSection}" />
+                <ItemsControl ItemsSource="{Binding Categories}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Columns="5" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate><DataTemplate><Border Background="#E4E0D1" BorderBrush="#C6C3B4" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,8,0"><StackPanel>
+                        <TextBox Text="{Binding Icon}" FontSize="24" TextAlignment="Center" Margin="0,0,0,8" ToolTip="Moment icon" AutomationProperties.Name="Moment icon" />
+                        <TextBox Text="{Binding Name}" TextAlignment="Center" FontSize="13" Padding="4,7" Margin="0" ToolTip="Moment name" AutomationProperties.Name="Moment name" />
+                    </StackPanel></Border></DataTemplate></ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel></Border>
+            <TextBlock Text="{Binding Disclaimer}" Foreground="#7A8175" FontSize="11" TextWrapping="Wrap" Margin="0,18,0,0" />
+        </StackPanel></ScrollViewer>
+        <StackPanel Grid.Row="2" Margin="0,16,0,0"><TextBlock Text="{Binding Error}" Foreground="#A04431" TextWrapping="Wrap" Margin="0,0,0,8" />
+            <DockPanel><TextBlock Text="Applies to new sessions." Foreground="#6B766D" FontSize="12" VerticalAlignment="Center" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource PaperKey}" Margin="0,0,12,0" /><Button Content="Save settings" Command="{Binding SaveCommand}" Style="{StaticResource PrimaryKey}" /></StackPanel></DockPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0" Visibility="{Binding ShowMouseHint, Converter={StaticResource Bool}}"><controls:StudioIcon Kind="mouse" Foreground="#6B726B" Width="14" Height="16" Margin="0,0,6,0" /><TextBlock Text="Use mouse" Foreground="#6B726B" FontSize="12" /></StackPanel>
+        </StackPanel>
+    </Grid>
+</Window>

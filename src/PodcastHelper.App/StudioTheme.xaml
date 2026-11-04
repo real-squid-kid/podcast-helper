@@ -1,0 +1,47 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <RotateTransform x:Key="BadgeTilt" Angle="-4" />
+    <DropShadowEffect x:Key="BadgeShadow" BlurRadius="5" ShadowDepth="2" Opacity="0.23" Color="#6D5430" />
+    <BooleanToVisibilityConverter x:Key="Bool" />
+    <SolidColorBrush x:Key="Paper" Color="#F1EDDF" />
+    <SolidColorBrush x:Key="Ink" Color="#29343A" />
+    <LinearGradientBrush x:Key="Metal" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#616B6E" Offset="0" /><GradientStop Color="#363F43" Offset="0.025" /><GradientStop Color="#30393D" Offset="0.5" /><GradientStop Color="#252E32" Offset="1" /></LinearGradientBrush>
+    <LinearGradientBrush x:Key="KeyCap" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#687272" /><GradientStop Color="#495557" Offset="0.12" /><GradientStop Color="#384448" Offset="1" /></LinearGradientBrush>
+    <LinearGradientBrush x:Key="IvoryCap" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#FFFEF6" /><GradientStop Color="#E8E2D2" Offset="0.16" /><GradientStop Color="#CEC7B7" Offset="1" /></LinearGradientBrush>
+    <LinearGradientBrush x:Key="AmberCap" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#FFDF94" /><GradientStop Color="#E9BC66" Offset="0.12" /><GradientStop Color="#B8883D" Offset="1" /></LinearGradientBrush>
+    <LinearGradientBrush x:Key="RedCap" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#E89B7C" /><GradientStop Color="#B85742" Offset="0.13" /><GradientStop Color="#823E34" Offset="1" /></LinearGradientBrush>
+    <Style x:Key="HardwareKey" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource KeyCap}" /><Setter Property="Foreground" Value="#F5EEDC" />
+        <Setter Property="BorderBrush" Value="#98A09A" /><Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="16,10" /><Setter Property="FontSize" Value="14" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
+            <Grid x:Name="Key" Background="Transparent">
+                <Border Background="#11191C" CornerRadius="3" Margin="0,3,0,0"><Border.Effect><DropShadowEffect BlurRadius="4" ShadowDepth="2" Opacity="0.45" /></Border.Effect></Border>
+                <Border x:Name="Cap" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="3" Margin="0,0,0,4">
+                    <Border BorderBrush="#35FFFFFF" BorderThickness="1,1,1,0" CornerRadius="2" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" /></Border>
+                </Border>
+                <Border x:Name="Focus" BorderBrush="#F5CE79" BorderThickness="1" CornerRadius="3" Margin="-3,-3,-3,0" Visibility="Collapsed" IsHitTestVisible="False" />
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Cap" Property="Opacity" Value="0.88" /></Trigger>
+                <Trigger Property="IsPressed" Value="True"><Setter TargetName="Cap" Property="Margin" Value="0,3,0,1" /></Trigger>
+                <Trigger Property="IsKeyboardFocused" Value="True"><Setter TargetName="Focus" Property="Visibility" Value="Visible" /></Trigger>
+                <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Key" Property="Opacity" Value="0.32" /></Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate></Setter.Value></Setter>
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style x:Key="IconKey" TargetType="Button" BasedOn="{StaticResource HardwareKey}"><Setter Property="Width" Value="38" /><Setter Property="Height" Value="38" /><Setter Property="Padding" Value="6" /></Style>
+    <Style x:Key="PaperKey" TargetType="Button" BasedOn="{StaticResource HardwareKey}"><Setter Property="Background" Value="{StaticResource IvoryCap}" /><Setter Property="Foreground" Value="{StaticResource Ink}" /><Setter Property="BorderBrush" Value="#B4AE9F" /></Style>
+    <Style x:Key="PrimaryKey" TargetType="Button" BasedOn="{StaticResource PaperKey}"><Setter Property="Background" Value="{StaticResource AmberCap}" /><Setter Property="BorderBrush" Value="#B99150" /></Style>
+    <Style x:Key="DangerKey" TargetType="Button" BasedOn="{StaticResource HardwareKey}"><Setter Property="Background" Value="{StaticResource RedCap}" /><Setter Property="BorderBrush" Value="#D7957C" /></Style>
+    <Style x:Key="Panel" TargetType="Border"><Setter Property="Background" Value="#283236" /><Setter Property="BorderBrush" Value="#667173" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="3" /><Setter Property="Padding" Value="16" /></Style>
+    <Style x:Key="Glass" TargetType="Border"><Setter Property="BorderBrush" Value="#0C1518" /><Setter Property="BorderThickness" Value="3,4,3,2" /><Setter Property="CornerRadius" Value="3" />
+        <Setter Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="0.2,1"><GradientStop Color="#1E2B2C" /><GradientStop Color="#0F1B1C" Offset="0.45" /><GradientStop Color="#172426" Offset="1" /></LinearGradientBrush></Setter.Value></Setter>
+    </Style>
+    <Style x:Key="PlateLabel" TargetType="TextBlock"><Setter Property="FontSize" Value="16" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="#B4C0BC" /><Setter Property="Margin" Value="0,0,0,8" /></Style>
+    <Style x:Key="Field" TargetType="TextBox"><Setter Property="Background" Value="#FFFEF8" /><Setter Property="Foreground" Value="{StaticResource Ink}" /><Setter Property="BorderBrush" Value="#BDB9AA" /><Setter Property="Padding" Value="10,8" /><Setter Property="FontSize" Value="14" /></Style>
+    <Style x:Key="SelectField" TargetType="ComboBox"><Setter Property="Foreground" Value="{StaticResource Ink}" /><Setter Property="Background" Value="#E9E5D8" /><Setter Property="Padding" Value="8,7" /><Setter Property="FontSize" Value="14" /></Style>
+    <Style x:Key="MouseHint" TargetType="TextBlock"><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="#6B726B" /><Setter Property="HorizontalAlignment" Value="Right" /><Setter Property="Margin" Value="0,14,0,0" /></Style>
+    <Style x:Key="DialogTitle" TargetType="TextBlock"><Setter Property="FontSize" Value="27" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{StaticResource Ink}" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+    <Style x:Key="DialogSection" TargetType="TextBlock"><Setter Property="FontSize" Value="15" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{StaticResource Ink}" /><Setter Property="Margin" Value="0,0,0,12" /></Style>
+</ResourceDictionary>

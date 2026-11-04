@@ -48,9 +48,15 @@ public static class SessionUndo
             AccountedOverrunSeconds = before.AccountedOverrunSeconds,
             Takes = takes,
             Claps = current.Claps.Select(x => oldClaps.Contains(x.Id) ? x : x with { Time = Remap(x.Time) }).ToImmutableArray(),
+            Moments = current.Moments.Select(moment => moment with { Presses = moment.Presses.Select((press, i) =>
+                before.Moments.FirstOrDefault(x => x.Id == moment.Id) is { } oldMoment && i < oldMoment.Presses.Length
+                    ? press : press with { Time = Remap(press.Time) }).ToImmutableArray() }).ToImmutableArray(),
             Pause = current.Pause is null ? (current.State == SessionState.Finished ? before.Pause : null)
                 : current.Pause with { Started = Remap(current.Pause.Started) }
         };
+        // Финальный Next остановил таймер вместе с сессией. После отмены восстанавливаем
+        // его ход так, словно перехода не было, включая активное время на экране итогов.
+        if (current.State == SessionState.Finished) result = UndoTimer(before, result);
         ModelValidation.Session(result);
         return result;
     }
@@ -65,5 +71,24 @@ public static class SessionUndo
             .Concat(order.Select(x => future[x])).ToImmutableArray() };
         ModelValidation.Session(result);
         return result;
+    }
+
+    public static Session UndoTimer(Session before, Session current)
+    {
+        long remaining = before.Timer.Running ? Math.Max(0, before.Timer.RemainingMs - (current.ActiveElapsedMs - before.ActiveElapsedMs)) : before.Timer.RemainingMs;
+        return current with { Timer = before.Timer with { RemainingMs = remaining, Running = before.Timer.Running && remaining > 0 } };
+    }
+
+    public static Session UndoMoments(Session before, Session current) => current with { Moments = before.Moments };
+
+    public static Session UndoFutureEdit(Session before, Session current)
+    {
+        if (before.CurrentSegmentIndex != current.CurrentSegmentIndex)
+            throw new InvalidOperationException("Undo the later segment transition first.");
+        if (current.Segments.Any(x => !before.Segments.Any(y => y.Original.Id == x.Original.Id) && x.ActiveElapsedMs > 0))
+            throw new InvalidOperationException("The added segment has recorded time. Undo its transition first.");
+        var aligned = current with { Segments = before.Segments.Select(original =>
+            current.Segments.FirstOrDefault(x => x.Original.Id == original.Original.Id) ?? original).ToImmutableArray() };
+        return UndoNext(before, aligned);
     }
 }

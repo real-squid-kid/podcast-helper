@@ -1,0 +1,36 @@
+<Window x:Class="PodcastHelper.App.PromptWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:PodcastHelper.App.Controls" Title="{Binding Heading}" Width="680" Height="400" SizeToContent="Height" MaxHeight="780" WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        Background="#F1EDDF" Foreground="#29343A" FontFamily="Segoe UI">
+    <Window.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="StudioTheme.xaml" /></ResourceDictionary.MergedDictionaries></ResourceDictionary></Window.Resources>
+    <Border BorderBrush="#BCB8A8" BorderThickness="1" Padding="30,28"><ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel>
+            <Grid Margin="0,0,0,20"><Grid.ColumnDefinitions><ColumnDefinition Width="62" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                <Border RenderTransformOrigin="0.5,0.5" RenderTransform="{StaticResource BadgeTilt}" Effect="{StaticResource BadgeShadow}" Width="46" Height="46" VerticalAlignment="Top" HorizontalAlignment="Left" CornerRadius="5" Background="{StaticResource AmberCap}" BorderBrush="#B79A64" BorderThickness="1"><controls:StudioIcon Kind="{Binding Icon}" Width="26" Height="26" /></Border>
+                <StackPanel Grid.Column="1"><TextBlock Text="{Binding Heading}" Style="{StaticResource DialogTitle}" /><TextBlock Text="{Binding Message}" FontSize="15" TextWrapping="Wrap" Foreground="#59645F" Margin="0,10,0,0" /></StackPanel>
+            </Grid>
+            <TextBlock Text="{Binding Context}" Foreground="#6B7369" FontSize="13" Margin="62,0,0,10"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed" /></Trigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+            <Border Background="#DFDBCC" BorderBrush="#B8B5A6" BorderThickness="1" CornerRadius="4" Padding="24" Margin="62,0,0,20" Visibility="{Binding ShowInput, Converter={StaticResource Bool}}">
+                <Grid HorizontalAlignment="Center"><Grid.ColumnDefinitions><ColumnDefinition Width="130" /><ColumnDefinition Width="28" /><ColumnDefinition Width="105" /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /></Grid.RowDefinitions>
+                    <TextBlock Text="Minutes" FontSize="13" Margin="0,0,0,7" /><TextBlock Grid.Column="2" Text="Seconds" FontSize="13" />
+                    <TextBox Grid.Row="1" Text="{Binding InputMinutes, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" FontFamily="Consolas" FontSize="38" TextAlignment="Center" AutomationProperties.Name="Minutes" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text=":" FontFamily="Consolas" FontSize="36" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                    <TextBox Grid.Row="1" Grid.Column="2" Text="{Binding InputSeconds, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource Field}" FontFamily="Consolas" FontSize="38" TextAlignment="Center" AutomationProperties.Name="Seconds" />
+                </Grid>
+            </Border>
+            <Border Visibility="{Binding ClapOnly, Converter={StaticResource Bool}}" Margin="62,0,0,22" HorizontalAlignment="Left" Background="#1F2F33" Padding="18,12" CornerRadius="4" BorderBrush="#6B7670" BorderThickness="1">
+                <StackPanel Orientation="Horizontal"><Border Background="{StaticResource IvoryCap}" BorderBrush="#A6AC9E" BorderThickness="1" CornerRadius="4" Padding="22,10" Margin="0,0,15,4"><TextBlock Text="Enter ↵" FontSize="21" FontWeight="SemiBold" /></Border><TextBlock Text="on your keyboard" Foreground="#D5DDCB" FontSize="14" VerticalAlignment="Center" /></StackPanel>
+            </Border>
+            <ItemsControl ItemsSource="{Binding DecisionChoices}" Margin="0,0,0,8">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="1" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate><DataTemplate><Button Command="{Binding Command}" Style="{StaticResource PaperKey}" Padding="18" Margin="4,0,4,0" HorizontalContentAlignment="Stretch">
+                    <StackPanel><controls:StudioIcon Kind="{Binding Icon}" Width="28" Height="28" Foreground="#826738" HorizontalAlignment="Left" Margin="0,0,0,15" /><TextBlock Text="{Binding Title}" FontSize="17" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{Binding Description}" FontSize="13" FontWeight="Normal" TextWrapping="Wrap" Foreground="#53615B" Margin="0,9,0,0" /></StackPanel>
+                </Button></DataTemplate></ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="{Binding Error}" Foreground="#A04431" TextWrapping="Wrap" Margin="62,0,0,10"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed" /></Trigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+            <ItemsControl ItemsSource="{Binding FooterChoices}" HorizontalAlignment="Right" Margin="0,8,0,0"><ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate><DataTemplate><Button Content="{Binding Label}" Command="{Binding Command}" Margin="10,0,0,0" MinWidth="105"><Button.Style><Style TargetType="Button" BasedOn="{StaticResource PaperKey}"><Style.Triggers><DataTrigger Binding="{Binding IsPrimary}" Value="True"><Setter Property="Background" Value="{StaticResource AmberCap}" /><Setter Property="BorderBrush" Value="#B99150" /></DataTrigger></Style.Triggers></Style></Button.Style></Button></DataTemplate></ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0" Visibility="{Binding ShowMouseHint, Converter={StaticResource Bool}}"><controls:StudioIcon Kind="mouse" Foreground="#6B726B" Width="14" Height="16" Margin="0,0,6,0" /><TextBlock Text="Use mouse" FontSize="12" Foreground="#6B726B" /></StackPanel>
+        </StackPanel>
+    </ScrollViewer></Border>
+</Window>

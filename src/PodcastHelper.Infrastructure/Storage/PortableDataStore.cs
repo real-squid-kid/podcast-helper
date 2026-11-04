@@ -3,8 +3,21 @@ using PodcastHelper.Core.Validation;
 
 namespace PodcastHelper.Infrastructure.Storage;
 
-public sealed class PortableDataStore(PortablePaths paths, JsonDocumentStore documents)
+public sealed class PortableDataStore(PortablePaths paths, JsonDocumentStore documents, PodcastHelper.Core.Abstractions.IJournalFileSystem? listing = null)
 {
+    public async Task<(IReadOnlyList<Scenario> Scenarios, int Unreadable)> ListScenariosAsync(CancellationToken ct = default)
+    {
+        var result = new List<Scenario>(); int unreadable = 0;
+        if (listing is null) return (result, 0);
+        var directory = Path.Combine(paths.BaseDirectory, "scenarios");
+        foreach (string file in await listing.EnumerateFilesAsync(directory, "*.json", ct).ConfigureAwait(false))
+        {
+            if (!Guid.TryParseExact(Path.GetFileNameWithoutExtension(file), "N", out Guid id)) continue;
+            try { var scenario = await LoadScenarioAsync(id, ct).ConfigureAwait(false); if (scenario is not null) result.Add(scenario); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDocumentException or UnsupportedSchemaException or PodcastHelper.Core.Validation.ModelValidationException) { unreadable++; }
+        }
+        return (result.OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase).ToArray(), unreadable);
+    }
     public async Task<AppSettings> InitializeSettingsAsync(CancellationToken ct = default)
     {
         var settings = await LoadSettingsAsync(ct).ConfigureAwait(false);

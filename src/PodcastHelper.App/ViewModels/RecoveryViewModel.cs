@@ -17,24 +17,29 @@ public sealed class RecoveryViewModel : ObservableObject
     private readonly IClock clock;
     private string sessionSeconds, segmentSeconds, takeSeconds, previewText = "", errorMessage = "";
     private string sessionReadable = "", segmentReadable = "", takeReadable = "";
+    private string timerSeconds = "0", timerReadable = "0 min 0 s";
     private int selectedSegmentIndex;
     private RecoveryStatus selectedStatus;
     public string Heading => plan.Heading;
+    public bool AtRisk => plan.EstimatedClosedMs > 180_000;
+    public string SurfaceColor => AtRisk ? "#F0D3CB" : "#F1EDDF";
     public string Warning => plan.Warning ?? (plan.ClockMovedBackwards ? "The computer clock moved backwards. Review all time estimates." : "Review the recording state before continuing.");
-    public string ClosedInterval => $"Estimated closed interval: {Seconds(plan.EstimatedClosedMs)} s ({MinutesSeconds(plan.EstimatedClosedMs)})";
-    public string TakeLabel => plan.LastKnown.Takes.IsEmpty ? "No take has started" : $"Take {plan.LastKnown.Takes[^1].Number} (operator estimate)";
+    public string ClosedInterval => $"Closed for approximately {MinutesSeconds(plan.EstimatedClosedMs)}";
+    public string TakeLabel => plan.LastKnown.Takes.IsEmpty ? "No take has started" : $"Take {plan.LastKnown.Takes[^1].Number:00}";
     public bool HasStarted => plan.LastKnown.StartedUtc is not null;
     public bool ShowMouseHint { get; }
     public ImmutableArray<SegmentChoice> Segments { get; }
     public ImmutableArray<RecoveryStatusChoice> Statuses { get; } =
-    [new(RecoveryStatus.Recording, "Recording"), new(RecoveryStatus.PausedTakeContinues, "Paused — take continues"),
-        new(RecoveryStatus.PausedTakeStopped, "Paused — take stopped"), new(RecoveryStatus.AwaitingClap, "Awaiting clap")];
+    [new(RecoveryStatus.Recording, "Recording"), new(RecoveryStatus.PausedTakeContinues, "Paused · recording kept rolling"),
+        new(RecoveryStatus.PausedTakeStopped, "Paused · recording stopped"), new(RecoveryStatus.AwaitingClap, "Waiting for a new clap")];
     public string SessionSeconds { get => sessionSeconds; set { if (SetProperty(ref sessionSeconds, value)) UpdatePreview(); } }
     public string SegmentSeconds { get => segmentSeconds; set { if (SetProperty(ref segmentSeconds, value)) UpdatePreview(); } }
     public string TakeSeconds { get => takeSeconds; set { if (SetProperty(ref takeSeconds, value)) UpdatePreview(); } }
     public string SessionReadable { get => sessionReadable; private set => SetProperty(ref sessionReadable, value); }
     public string SegmentReadable { get => segmentReadable; private set => SetProperty(ref segmentReadable, value); }
     public string TakeReadable { get => takeReadable; private set => SetProperty(ref takeReadable, value); }
+    public string TimerSeconds { get => timerSeconds; set { if (SetProperty(ref timerSeconds, value)) UpdatePreview(); } }
+    public string TimerReadable { get => timerReadable; private set => SetProperty(ref timerReadable, value); }
     public int SelectedSegmentIndex { get => selectedSegmentIndex; set { if (SetProperty(ref selectedSegmentIndex, value)) UpdatePreview(); } }
     public RecoveryStatus SelectedStatus { get => selectedStatus; set { if (SetProperty(ref selectedStatus, value)) UpdatePreview(); } }
     public string PreviewText { get => previewText; private set => SetProperty(ref previewText, value); }
@@ -53,6 +58,7 @@ public sealed class RecoveryViewModel : ObservableObject
         selectedSegmentIndex = s.CurrentSegmentIndex;
         sessionSeconds = Seconds(s.StartedUtc is null ? 0 : checked(s.SessionElapsedMs + plan.EstimatedClosedMs));
         segmentSeconds = Seconds(s.Segments[s.CurrentSegmentIndex].ActiveElapsedMs);
+        timerSeconds = Seconds(s.Timer.RemainingMs);
         var take = s.Takes.LastOrDefault();
         takeSeconds = Seconds(take is null ? 0 : take.Ended?.TakeElapsedMs ?? s.SessionElapsedMs - take.Started.SessionElapsedMs + take.ElapsedAdjustmentMs);
         selectedStatus = s.State == SessionState.AwaitingClap ? RecoveryStatus.AwaitingClap
@@ -68,17 +74,18 @@ public sealed class RecoveryViewModel : ObservableObject
     }
 
     private Session Build() => RecoveryEditor.Apply(plan,
-        new(Parse(SessionSeconds), SelectedSegmentIndex, Parse(SegmentSeconds), Parse(TakeSeconds), SelectedStatus), clock.UtcNow, clock.LocalNow.Offset);
+        new(Parse(SessionSeconds), SelectedSegmentIndex, Parse(SegmentSeconds), Parse(TakeSeconds), SelectedStatus) { TimerRemainingMs = Parse(TimerSeconds) }, clock.UtcNow, clock.LocalNow.Offset);
     private void UpdatePreview()
     {
         SessionReadable = Readable(SessionSeconds);
         SegmentReadable = Readable(SegmentSeconds);
         TakeReadable = Readable(TakeSeconds);
+        TimerReadable = Readable(TimerSeconds);
         try
         {
             var corrected = Build();
             long reserveMs = corrected.ReserveSeconds * 1000 + corrected.ReserveSubsecondMs;
-            PreviewText = $"Reserve: {Seconds(reserveMs)} s ({MinutesSeconds(reserveMs)}). Overrun: {Seconds(corrected.UnfundedOverrunMs)} s ({MinutesSeconds(corrected.UnfundedOverrunMs)}).";
+            PreviewText = $"Reserve left: {MinutesSeconds(reserveMs)}" + (corrected.UnfundedOverrunMs > 0 ? $" · Overdue: {MinutesSeconds(corrected.UnfundedOverrunMs)}" : "");
         }
         catch (Exception ex) when (ex is ModelValidationException or OverflowException or FormatException)
         { PreviewText = "Review the time fields. Changes have not been applied."; }

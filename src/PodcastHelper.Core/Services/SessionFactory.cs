@@ -11,7 +11,7 @@ public sealed class SessionFactory(IClock clock)
     {
         ModelValidation.Scenario(scenario);
         ModelValidation.Settings(settings);
-        long total = scenario.Segments.Sum(x => (long)x.OriginalSeconds);
+        var balance = ScenarioBudget.Analyze(scenario.TargetSeconds, scenario.Segments.Select(x => x.OriginalSeconds));
         // Все вложенные данные неизменяемы; изменения выпуска не изменяют шаблон.
         return new Session
         {
@@ -19,8 +19,8 @@ public sealed class SessionFactory(IClock clock)
             SettingsSnapshot = settings with { },
             CreatedUtc = clock.UtcNow,
             Segments = scenario.Segments.Select(x => new SessionSegment(x with { }, x.OriginalSeconds, 0)).ToImmutableArray(),
-            ReserveSeconds = Math.Max(0, scenario.TargetSeconds - total),
-            PlannedOverageSeconds = Math.Max(0, total - scenario.TargetSeconds)
+            ReserveSeconds = balance.ReserveSeconds,
+            PlannedOverageSeconds = balance.PlannedOverageSeconds
         };
     }
 }

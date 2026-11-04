@@ -7,6 +7,7 @@ public enum SessionState { Preparing, Ready, Recording, Paused, AwaitingClap, Fi
 public sealed record SessionSegment(Segment Original, int BudgetSeconds, long ActiveElapsedMs)
 {
     public long ReserveUsedMs { get; init; }
+    public bool RemovedFromScenario { get; init; }
 }
 
 // Только сохраняемые данные. Переходы состояний и расчёт времени выполняет SessionEngine.
@@ -32,4 +33,6 @@ public sealed record Session
     public ImmutableArray<Take> Takes { get; init; } = [];
     public ImmutableArray<Clap> Claps { get; init; } = [];
     public PauseContext? Pause { get; init; }
+    public SessionTimer Timer { get; init; } = new();
+    public ImmutableArray<Moment> Moments { get; init; } = [];
 }

@@ -1,50 +1,32 @@
-<Window x:Class="PodcastHelper.App.RecoveryWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Recover session" Width="740" Height="700" MinWidth="640" MinHeight="560"
-        WindowStartupLocation="CenterOwner" Background="#F4F4F4" Foreground="#202225">
-    <Window.Resources><BooleanToVisibilityConverter x:Key="BoolVisibility" /></Window.Resources>
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="24">
-            <TextBlock Text="{Binding Heading}" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,14" />
-            <TextBlock Text="{Binding Warning}" TextWrapping="Wrap" Foreground="#9C251C" FontWeight="SemiBold" Margin="0,0,0,12" />
-            <TextBlock Text="{Binding ClosedInterval}" TextWrapping="Wrap" Margin="0,0,0,8" />
-            <TextBlock Text="Check the times, current segment and recording state. Correct any estimates, then choose Recover session below."
-                       TextWrapping="Wrap" Margin="0,0,0,8" />
-            <TextBlock Text="Camera activity is not verified. Enter times in seconds; minutes and seconds are shown beside each field."
-                       TextWrapping="Wrap" Margin="0,0,0,18" />
-            <Grid>
-                <Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition Width="*" /><ColumnDefinition Width="140" /></Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <TextBlock Text="Session Time" VerticalAlignment="Center" />
-                <TextBox Grid.Column="1" Text="{Binding SessionSeconds, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,10" IsEnabled="{Binding HasStarted}" />
-                <TextBlock Grid.Column="2" Text="{Binding SessionReadable}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="12,0,0,10" Foreground="#555555" />
-                <TextBlock Grid.Row="1" Text="Current segment" VerticalAlignment="Center" />
-                <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Segments}" DisplayMemberPath="Name" SelectedValuePath="Index"
-                          SelectedValue="{Binding SelectedSegmentIndex}" Padding="6" Margin="0,0,0,10" IsEnabled="{Binding HasStarted}" />
-                <TextBlock Grid.Row="2" Text="Segment active time" VerticalAlignment="Center" />
-                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SegmentSeconds, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,10" IsEnabled="{Binding HasStarted}" />
-                <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding SegmentReadable}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="12,0,0,10" Foreground="#555555" />
-                <TextBlock Grid.Row="3" Text="Take Time" VerticalAlignment="Center" />
-                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding TakeSeconds, UpdateSourceTrigger=PropertyChanged}" Padding="6" Margin="0,0,0,4" IsEnabled="{Binding HasStarted}" />
-                <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding TakeReadable}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="12,0,0,4" Foreground="#555555" />
-                <TextBlock Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding TakeLabel}" Foreground="#555555" Margin="0,0,0,12" />
-                <TextBlock Grid.Row="5" Text="Recording state" VerticalAlignment="Center" />
-                <ComboBox Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding Statuses}" DisplayMemberPath="Label" SelectedValuePath="Value"
-                          SelectedValue="{Binding SelectedStatus}" Padding="6" IsEnabled="{Binding HasStarted}" />
+<Window x:Class="PodcastHelper.App.RecoveryWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:controls="clr-namespace:PodcastHelper.App.Controls"
+        Title="Recover session" Width="820" Height="780" MinWidth="720" MinHeight="650" WindowStartupLocation="CenterOwner" Background="{Binding SurfaceColor}" Foreground="#29343A" FontFamily="Segoe UI">
+    <Window.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="StudioTheme.xaml" /></ResourceDictionary.MergedDictionaries>
+        <Style TargetType="TextBox" BasedOn="{StaticResource Field}"><Setter Property="FontFamily" Value="Consolas" /><Setter Property="Margin" Value="0,0,0,12" /></Style>
+        <Style x:Key="TimeLabel" TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="FontSize" Value="14" /><Setter Property="Margin" Value="0,0,0,12" /></Style>
+        <Style x:Key="Readable" TargetType="TextBlock"><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="FontSize" Value="13" /><Setter Property="Foreground" Value="#6B766D" /><Setter Property="Margin" Value="16,0,0,12" /></Style>
+    </ResourceDictionary></Window.Resources>
+    <Grid Margin="30,26"><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <Grid Margin="0,0,0,22"><Grid.ColumnDefinitions><ColumnDefinition Width="62" /><ColumnDefinition /></Grid.ColumnDefinitions><Border RenderTransformOrigin="0.5,0.5" RenderTransform="{StaticResource BadgeTilt}" Effect="{StaticResource BadgeShadow}" Width="46" Height="46" VerticalAlignment="Top" HorizontalAlignment="Left" CornerRadius="5" Background="{StaticResource AmberCap}" BorderBrush="#B79A64" BorderThickness="1"><controls:StudioIcon Kind="recover" Width="27" Height="27" /></Border><StackPanel Grid.Column="1"><TextBlock Text="{Binding Heading}" Style="{StaticResource DialogTitle}" /><TextBlock Text="{Binding ClosedInterval}" FontSize="14" Foreground="#6B766D" Margin="0,10,0,0" /></StackPanel></Grid>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,10,0"><StackPanel>
+            <TextBlock Text="{Binding Warning}" TextWrapping="Wrap" Foreground="#A34D35" FontSize="13" FontWeight="SemiBold" Margin="0,0,0,18"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed" /></Trigger><Trigger Property="Text" Value="{x:Null}"><Setter Property="Visibility" Value="Collapsed" /></Trigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+            <TextBlock Text="Check the clocks and recording status before you resume." FontSize="15" Margin="0,0,0,18" />
+            <Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="20" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                <StackPanel><TextBlock Text="Current segment" Foreground="#5A655F" Margin="0,0,0,7" /><ComboBox ItemsSource="{Binding Segments}" DisplayMemberPath="Name" SelectedValuePath="Index" SelectedValue="{Binding SelectedSegmentIndex}" Style="{StaticResource SelectField}" IsEnabled="{Binding HasStarted}" /></StackPanel>
+                <StackPanel Grid.Column="2"><TextBlock Text="Recording status" Foreground="#5A655F" Margin="0,0,0,7" /><ComboBox ItemsSource="{Binding Statuses}" DisplayMemberPath="Label" SelectedValuePath="Value" SelectedValue="{Binding SelectedStatus}" Style="{StaticResource SelectField}" IsEnabled="{Binding HasStarted}" /></StackPanel>
             </Grid>
-            <TextBlock Text="{Binding PreviewText}" TextWrapping="Wrap" Margin="0,18,0,8" />
-            <TextBlock Text="Recover session applies these values and restores the selected recording state. Start anew archives this session without resuming it. Saved events will not be deleted."
-                       TextWrapping="Wrap" Margin="0,0,0,14" />
-            <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" Foreground="#9C251C" Margin="0,0,0,10" />
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="Start anew" Command="{Binding StartAnewCommand}" Padding="16,8" Margin="0,0,12,0" />
-                <Button Content="Recover session" Command="{Binding RecoverCommand}" Padding="16,8" FontWeight="SemiBold" />
-            </StackPanel>
-            <TextBlock Text="🖱 Use mouse" Visibility="{Binding ShowMouseHint, Converter={StaticResource BoolVisibility}}" HorizontalAlignment="Right" Margin="0,10,0,0" />
+            <Border Background="#E4E0D1" BorderBrush="#C6C3B4" BorderThickness="1" CornerRadius="4" Padding="18" Margin="0,20,0,0"><Grid>
+                <Grid.ColumnDefinitions><ColumnDefinition Width="190" /><ColumnDefinition /><ColumnDefinition Width="155" /></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <TextBlock Grid.Column="1" Text="Seconds" FontSize="12" Foreground="#6B766D" Margin="0,0,0,9" />
+                <TextBlock Grid.Row="1" Text="Session elapsed" Style="{StaticResource TimeLabel}" /><TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SessionSeconds, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding HasStarted}" AutomationProperties.Name="Session time in seconds" /><TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding SessionReadable}" Style="{StaticResource Readable}" />
+                <TextBlock Grid.Row="2" Text="Time in this segment" Style="{StaticResource TimeLabel}" /><TextBox Grid.Row="2" Grid.Column="1" Text="{Binding SegmentSeconds, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding HasStarted}" AutomationProperties.Name="Segment time in seconds" /><TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding SegmentReadable}" Style="{StaticResource Readable}" />
+                <TextBlock Grid.Row="3" Text="Take elapsed" Style="{StaticResource TimeLabel}" /><TextBox Grid.Row="3" Grid.Column="1" Text="{Binding TakeSeconds, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding HasStarted}" AutomationProperties.Name="Take time in seconds" /><TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding TakeReadable}" Style="{StaticResource Readable}" />
+                <TextBlock Grid.Row="4" Text="Timer left" Style="{StaticResource TimeLabel}" /><TextBox Grid.Row="4" Grid.Column="1" Text="{Binding TimerSeconds, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding HasStarted}" AutomationProperties.Name="Timer time in seconds" /><TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding TimerReadable}" Style="{StaticResource Readable}" />
+                <TextBlock Grid.Row="5" Grid.ColumnSpan="3" Text="{Binding TakeLabel}" FontSize="12" Foreground="#6B766D" />
+            </Grid></Border>
+            <TextBlock Text="{Binding PreviewText}" Foreground="#7B663D" TextWrapping="Wrap" Margin="0,14,0,0" />
+        </StackPanel></ScrollViewer>
+        <StackPanel Grid.Row="2" Margin="0,18,0,0"><TextBlock Text="{Binding ErrorMessage}" Foreground="#A04431" TextWrapping="Wrap" Margin="0,0,0,10" /><TextBlock Text="Recover with these values, or keep this session in history and start anew." Foreground="#6B766D" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,18" /><StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><Button Content="Start anew" Style="{StaticResource PaperKey}" Command="{Binding StartAnewCommand}" Margin="0,0,12,0" /><Button Content="Recover session" Style="{StaticResource PrimaryKey}" Command="{Binding RecoverCommand}" /></StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0" Visibility="{Binding ShowMouseHint, Converter={StaticResource Bool}}"><controls:StudioIcon Kind="mouse" Foreground="#6B726B" Width="14" Height="16" Margin="0,0,6,0" /><TextBlock Text="Use mouse" FontSize="12" Foreground="#6B726B" /></StackPanel>
         </StackPanel>
-    </ScrollViewer>
+    </Grid>
 </Window>

@@ -1,15 +1,157 @@
 <Window x:Class="PodcastHelper.App.MainWindow"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="PodcastHelper" Width="960" Height="600"
-        Background="#202225" Foreground="#ECECEC">
-    <Grid Margin="24">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <TextBlock Text="{Binding DisplayState}" FontSize="36"
-                   HorizontalAlignment="Center" VerticalAlignment="Center" />
-        <TextBlock Grid.Row="1" Text="{Binding StatusMessage}" TextWrapping="Wrap" FontSize="16" />
-    </Grid>
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:PodcastHelper.App.Controls" Title="PodcastHelper" Width="1440" Height="1080" MinWidth="960" MinHeight="650"
+        Background="#161F23" Foreground="#ECEBDD" FontFamily="Segoe UI" FontSize="16">
+    <Window.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="StudioTheme.xaml" /></ResourceDictionary.MergedDictionaries>
+        <Style TargetType="Button" BasedOn="{StaticResource HardwareKey}"><Setter Property="FontSize" Value="16" /></Style><Style TargetType="TextBlock"><Setter Property="FontSize" Value="16" /></Style><Style TargetType="ToolTip"><Setter Property="FontSize" Value="16" /></Style>
+        <Style x:Key="OrderItem" TargetType="ListBoxItem"><Setter Property="Padding" Value="12,13" /><Setter Property="Margin" Value="0,0,0,4" /><Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="Row" Background="Transparent" BorderBrush="#314045" BorderThickness="0,0,0,1" CornerRadius="2" Padding="{TemplateBinding Padding}"><ContentPresenter /></Border><ControlTemplate.Triggers>
+                <Trigger Property="IsSelected" Value="True"><Setter TargetName="Row" Property="Background" Value="#354447" /><Setter TargetName="Row" Property="BorderBrush" Value="#C7A467" /><Setter TargetName="Row" Property="BorderThickness" Value="3,0,0,1" /></Trigger>
+                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Row" Property="Background" Value="#293A3F" /></Trigger>
+            </ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <DrawingBrush x:Key="Grain" TileMode="Tile" Viewport="0,0,8,4" ViewportUnits="Absolute"><DrawingBrush.Drawing><DrawingGroup><GeometryDrawing><GeometryDrawing.Pen><Pen Brush="#0BDBE3DC" Thickness="0.5" /></GeometryDrawing.Pen><GeometryDrawing.Geometry><LineGeometry StartPoint="0,1" EndPoint="8,1" /></GeometryDrawing.Geometry></GeometryDrawing></DrawingGroup></DrawingBrush.Drawing></DrawingBrush>
+    </ResourceDictionary></Window.Resources>
+    <Grid><Viewbox Stretch="Uniform">
+        <Border Width="1400" Height="1000" BorderBrush="#838B88" BorderThickness="1" CornerRadius="9" Background="{StaticResource Metal}">
+            <Grid>
+                <Border Background="{StaticResource Grain}" IsHitTestVisible="False" CornerRadius="9" />
+                <Border BorderBrush="#121D22" BorderThickness="6,0" Margin="7,14" CornerRadius="4" IsHitTestVisible="False" />
+                <controls:PanelScrew Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12" />
+                <controls:PanelScrew Width="14" Height="14" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="12" />
+                <controls:PanelScrew Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="12" />
+                <controls:PanelScrew Width="14" Height="14" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12" />
+                <Grid Margin="30,22,30,20">
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="54" /><RowDefinition Height="148" /><RowDefinition Height="*" /><RowDefinition Height="70" /><RowDefinition Height="46" /></Grid.RowDefinitions>
+                    <DockPanel Grid.Row="1">
+                        <TextBlock Text="PodcastHelper" FontSize="25" FontWeight="SemiBold" Foreground="#E8E4D5" VerticalAlignment="Center" Margin="0,0,0,8"><TextBlock.Effect><DropShadowEffect Color="#000000" BlurRadius="1" ShadowDepth="1" Opacity="0.9" /></TextBlock.Effect></TextBlock>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                            <Button FontSize="16" Style="{StaticResource IconKey}" Command="{Binding SettingsCommand}" ToolTip="Settings" AutomationProperties.Name="Settings" Margin="0,0,10,0"><controls:StudioIcon Kind="settings" /></Button>
+                            <Button FontSize="16" Style="{StaticResource IconKey}" Command="{Binding FullScreenCommand}" ToolTip="Full screen / Window · F11" AutomationProperties.Name="Full screen / Window"><controls:StudioIcon Kind="expand" /></Button>
+                        </StackPanel>
+                    </DockPanel>
+                    <Grid Grid.Row="2" Margin="0,0,0,16">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="172" /><ColumnDefinition /><ColumnDefinition /><ColumnDefinition Width="260" /></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource Panel}" Margin="0,0,14,0" Padding="12">
+                            <StackPanel VerticalAlignment="Center">
+                                <Border BorderThickness="2" CornerRadius="2" Padding="8,16">
+                                    <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#382A26" /><Setter Property="BorderBrush" Value="#1A2022" /><Style.Triggers><DataTrigger Binding="{Binding IsOnAir}" Value="True"><Setter Property="Background"><Setter.Value><LinearGradientBrush StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#F87C55" /><GradientStop Color="#B63526" Offset="0.16" /><GradientStop Color="#C5402F" Offset="1" /></LinearGradientBrush></Setter.Value></Setter><Setter Property="BorderBrush" Value="#F0B28C" /><Setter Property="Effect"><Setter.Value><DropShadowEffect Color="#E95637" BlurRadius="18" ShadowDepth="0" Opacity="0.35" /></Setter.Value></Setter></DataTrigger></Style.Triggers></Style></Border.Style>
+                                    <TextBlock Text="ON AIR" FontSize="25" FontWeight="Bold" Foreground="#FFEBD1" HorizontalAlignment="Center" />
+                                </Border>
+                                <TextBlock Text="{Binding IdleState}" HorizontalAlignment="Center" Foreground="#AAB7B2" FontSize="16" FontWeight="SemiBold" Margin="0,7,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="1" Style="{StaticResource Glass}" Margin="0,0,14,0" Padding="18,12">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="30" /><RowDefinition /></Grid.RowDefinitions><TextBlock Text="SESSION TIME" Style="{StaticResource PlateLabel}" />
+                                <controls:SevenSegmentDisplay Grid.Row="1" Text="{Binding SessionTime}" SegmentBrush="#D8E8B8" Height="64" />
+                            </Grid>
+                        </Border>
+                        <Border Grid.Column="2" Style="{StaticResource Glass}" Margin="0,0,14,0" Padding="18,12">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="30" /><RowDefinition /><RowDefinition Height="26" /></Grid.RowDefinitions>
+                                <DockPanel><TextBlock Text="TAKE TIME" Style="{StaticResource PlateLabel}" /><TextBlock Text="{Binding TakeNumber}" Foreground="#C3B48B" FontSize="16" HorizontalAlignment="Right" /></DockPanel>
+                                <controls:SevenSegmentDisplay Grid.Row="1" Text="{Binding TakeTime}" SegmentBrush="#E8C688" Height="44" />
+                                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Visibility="{Binding CanCorrectPause, Converter={StaticResource Bool}}">
+                                    <TextBlock Text="{Binding RecordingChoiceLabel}" Foreground="#B8C4B9" FontSize="16" VerticalAlignment="Center" />
+                                    <Button FontSize="16" Command="{Binding CorrectPauseCommand}" ToolTip="Change whether recording stopped at this pause" AutomationProperties.Name="Change recording status" Padding="3" Margin="8,0,0,0"><controls:StudioIcon Kind="edit" Width="12" Height="12" /></Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <Border Grid.Column="3" Style="{StaticResource Glass}" Padding="18,12">
+                            <Grid><Grid.RowDefinitions><RowDefinition Height="30" /><RowDefinition /><RowDefinition Height="28" /></Grid.RowDefinitions>
+                                <TextBlock Text="SEGMENT LEFT" Style="{StaticResource PlateLabel}" />
+                                <controls:SevenSegmentDisplay Grid.Row="1" Text="{Binding PersonalTime}" SegmentBrush="#EAD49A" Height="40" />
+                                <DockPanel Grid.Row="2" Margin="0,7,0,0"><TextBlock Text="{Binding ReserveCaption}" Foreground="#AABAAF" FontSize="16" /><TextBlock Text="{Binding ReserveTime}" Foreground="#CFD9BB" FontFamily="Consolas" FontSize="17" HorizontalAlignment="Right" /></DockPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                    <Grid Grid.Row="3"><Grid.ColumnDefinitions><ColumnDefinition Width="246" /><ColumnDefinition Width="16" /><ColumnDefinition /><ColumnDefinition Width="16" /><ColumnDefinition Width="294" /></Grid.ColumnDefinitions>
+                        <Border Style="{StaticResource Panel}" Padding="12">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Top"><TextBlock Text="SCENARIO" Style="{StaticResource PlateLabel}" Margin="3,0,0,9" />
+                                    <ComboBox FontSize="16" ItemsSource="{Binding Scenarios}" SelectedItem="{Binding SelectedScenario}" DisplayMemberPath="Name" IsEnabled="{Binding IsStandby}" Style="{StaticResource SelectField}" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,9,0,12" Visibility="{Binding IsStandby, Converter={StaticResource Bool}}">
+                                        <Button FontSize="16" Style="{StaticResource IconKey}" Command="{Binding NewScenarioCommand}" ToolTip="New scenario" AutomationProperties.Name="New scenario" Margin="0,0,7,0"><controls:StudioIcon Kind="plus" /></Button>
+                                        <Button FontSize="16" Style="{StaticResource IconKey}" Command="{Binding EditScenarioCommand}" ToolTip="Edit scenario" AutomationProperties.Name="Edit scenario"><controls:StudioIcon Kind="edit" /></Button>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding PlanNotice}" Foreground="#F0CB7E" TextWrapping="Wrap" FontSize="16" Margin="0,8,0,8" />
+                                </StackPanel>
+                                <UniformGrid DockPanel.Dock="Bottom" Rows="1" Margin="0,12,0,0" Visibility="{Binding HasSession, Converter={StaticResource Bool}}">
+                                    <Button FontSize="16" Style="{StaticResource IconKey}" Command="{Binding AddSegmentCommand}" ToolTip="Add segment" AutomationProperties.Name="Add segment"><controls:StudioIcon Kind="plus" /></Button>
+                                    <Button FontSize="16" Style="{StaticResource IconKey}" Command="{Binding EditSegmentCommand}" ToolTip="Edit selected segment" AutomationProperties.Name="Edit selected segment"><controls:StudioIcon Kind="edit" /></Button>
+                                    <Button FontSize="16" Style="{StaticResource IconKey}" Command="{Binding RemoveSegmentCommand}" ToolTip="Remove selected segment" AutomationProperties.Name="Remove selected segment"><controls:StudioIcon Kind="trash" /></Button>
+                                    <Button FontSize="16" Style="{StaticResource IconKey}" Command="{Binding SegmentUpCommand}" ToolTip="Move segment up" AutomationProperties.Name="Move segment up"><controls:StudioIcon Kind="up" /></Button>
+                                    <Button FontSize="16" Style="{StaticResource IconKey}" Command="{Binding SegmentDownCommand}" ToolTip="Move segment down" AutomationProperties.Name="Move segment down"><controls:StudioIcon Kind="down" /></Button>
+                                </UniformGrid>
+                                <Border Style="{StaticResource Glass}" Padding="3"><ListBox ItemsSource="{Binding SegmentRows}" SelectedItem="{Binding SelectedSegment}" Background="Transparent" Foreground="#E5E8D8" BorderThickness="0" ItemContainerStyle="{StaticResource OrderItem}" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListBox.ItemTemplate><DataTemplate><Grid><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="57" /></Grid.ColumnDefinitions><StackPanel><TextBlock Text="{Binding State}" Foreground="#9BB49E" FontSize="16" Margin="0,0,0,5" /><TextBlock Text="{Binding Label}" FontSize="16" FontWeight="SemiBold" TextWrapping="Wrap" /></StackPanel><TextBlock Grid.Column="1" Text="{Binding Duration}" FontFamily="Consolas" FontSize="16" Foreground="#D6C18F" VerticalAlignment="Center" HorizontalAlignment="Right" /></Grid></DataTemplate></ListBox.ItemTemplate>
+                                </ListBox></Border>
+                            </DockPanel>
+                        </Border>
+                        <Grid Grid.Column="2"><Grid.RowDefinitions><RowDefinition Height="1.25*" /><RowDefinition Height="72" /><RowDefinition /></Grid.RowDefinitions>
+                            <Border Style="{StaticResource Glass}" Padding="22,18">
+                                <DockPanel><StackPanel DockPanel.Dock="Top"><TextBlock Text="CURRENT SEGMENT" Style="{StaticResource PlateLabel}" Foreground="#91AFA2" /><TextBlock Text="{Binding SegmentTitle}" Foreground="#F0E9D4" FontSize="28" FontWeight="SemiBold" Margin="0,0,0,12" TextTrimming="CharacterEllipsis" /></StackPanel>
+                                    <controls:SafeMarkdownView FontSize="16" Text="{Binding DescriptionMarkdown}" Foreground="#D9E0CD" Background="Transparent" />
+                                </DockPanel>
+                            </Border>
+                            <Border Grid.Row="1" BorderBrush="#687678" BorderThickness="0,1,0,1" Margin="1,11" Padding="4,0"><DockPanel VerticalAlignment="Center"><TextBlock Text="NEXT" Style="{StaticResource PlateLabel}" Width="52" Margin="0" VerticalAlignment="Center" /><TextBlock Text="{Binding NextSegmentTitle}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" /><TextBlock Text="{Binding NextSegmentEstimate}" Foreground="#B2BDAF" FontSize="16" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0" /></DockPanel></Border>
+                            <Border Grid.Row="2" Style="{StaticResource Panel}" Padding="12"><DockPanel>
+                                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,9"><TextBlock Text="EVENTS" Style="{StaticResource PlateLabel}" VerticalAlignment="Center" Margin="0" />
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"><ComboBox ItemsSource="{Binding LogFilters}" SelectedItem="{Binding LogFilter}" Style="{StaticResource SelectField}" Width="100" FontSize="16" Padding="5,3" Margin="0,0,9,0" /><Button FontSize="16" Style="{StaticResource IconKey}" Width="29" Height="29" Padding="6" Command="{Binding DeleteMomentCommand}" ToolTip="Delete selected moment" AutomationProperties.Name="Delete selected moment"><controls:StudioIcon Kind="trash" /></Button></StackPanel>
+                                </DockPanel>
+                                <ListBox ItemsSource="{Binding TimelineRows}" SelectedItem="{Binding SelectedLogRow}" Background="#172529" Foreground="#DCE4D3" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
+                                    <ListBox.ItemTemplate><DataTemplate><Grid Margin="3,5"><Grid.ColumnDefinitions><ColumnDefinition Width="78" /><ColumnDefinition Width="36" /><ColumnDefinition /></Grid.ColumnDefinitions><TextBlock Text="{Binding Time}" FontFamily="Consolas" FontSize="16" Foreground="#A2BCAB" /><TextBlock Grid.Column="1" Text="{Binding Glyph}" Foreground="#E4C17E" /><TextBlock Grid.Column="2" Text="{Binding Label}" FontSize="16" TextTrimming="CharacterEllipsis" ToolTip="{Binding Detail}" /></Grid></DataTemplate></ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel></Border>
+                        </Grid>
+                        <Grid Grid.Column="4"><Grid.RowDefinitions><RowDefinition Height="268" /><RowDefinition Height="14" /><RowDefinition /></Grid.RowDefinitions>
+                            <Border Style="{StaticResource Panel}" Padding="14,12"><StackPanel>
+                                <DockPanel Margin="0,0,0,7"><TextBlock Text="TIMER" Style="{StaticResource PlateLabel}" Margin="0" /><TextBlock Text="{Binding TimerStatus}" Foreground="#A3B7A5" FontSize="16" HorizontalAlignment="Right" /></DockPanel>
+                                <Button Command="{Binding TimerPlusCommand}" Content="+15s" Padding="8,1" FontSize="16" Margin="0,0,0,4" />
+                                <Border Style="{StaticResource Glass}" Padding="10,3"><controls:SevenSegmentDisplay Text="{Binding TimerTime}" SegmentBrush="{Binding TimerColor}" Height="41" /></Border>
+                                <Button Command="{Binding TimerMinusCommand}" Content="−15s" Padding="8,1" FontSize="16" Margin="0,5,0,7" />
+                                <UniformGrid Columns="3"><Button FontSize="16" Content="{Binding Preset1Label}" Command="{Binding TimerPreset1Command}" Padding="5,3" Margin="0,0,5,0" /><Button FontSize="16" Content="{Binding Preset2Label}" Command="{Binding TimerPreset2Command}" Padding="5,3" Margin="0,0,5,0" /><Button FontSize="16" Content="{Binding Preset3Label}" Command="{Binding TimerPreset3Command}" Padding="5,3" /></UniformGrid>
+                                <Grid Margin="0,7,0,0"><Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="44" /></Grid.ColumnDefinitions><Button FontSize="16" Command="{Binding TimerCustomCommand}" Style="{StaticResource PaperKey}" Padding="7,3" Margin="0,0,7,0"><StackPanel Orientation="Horizontal"><controls:StudioIcon Kind="clock" Width="16" Height="16" Margin="0,0,7,0" /><TextBlock Text="Set timer" FontSize="16" /></StackPanel></Button><Button FontSize="16" Grid.Column="1" Command="{Binding TimerStopCommand}" Padding="10,3" ToolTip="Stop timer" AutomationProperties.Name="Stop timer"><controls:StudioIcon Kind="stop" Width="17" Height="17" /></Button></Grid>
+                            </StackPanel></Border>
+                            <Border Grid.Row="2" Style="{StaticResource Panel}" Padding="14,12"><DockPanel><TextBlock DockPanel.Dock="Top" Text="MOMENTS" Style="{StaticResource PlateLabel}" Margin="0,0,0,9" />
+                                <ItemsControl ItemsSource="{Binding MomentButtons}" IsEnabled="{Binding IsOnAir}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><UniformGrid Rows="5" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate><DataTemplate><Button FontSize="16" Command="{Binding Command}" Padding="9,1" Margin="0,0,0,4" Background="{StaticResource IvoryCap}" Foreground="#2C3A3C" BorderBrush="#B6B9A8" HorizontalContentAlignment="Stretch"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="35" /><ColumnDefinition /></Grid.ColumnDefinitions><TextBlock Text="{Binding Icon}" Foreground="#78603D" FontSize="20" VerticalAlignment="Center" /><TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="16" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" /></Grid></Button></DataTemplate></ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </DockPanel></Border>
+                        </Grid>
+                    </Grid>
+                    <Border Grid.Row="0" Margin="0,0,0,12" CornerRadius="4" BorderThickness="2" Visibility="{Binding AlertVisible, Converter={StaticResource Bool}}">
+                        <Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#263B46" /><Setter Property="BorderBrush" Value="#789B9E" /><Style.Triggers><DataTrigger Binding="{Binding AlertYellow}" Value="True"><Setter Property="Background" Value="#514327" /><Setter Property="BorderBrush" Value="#D7B25C" /></DataTrigger><DataTrigger Binding="{Binding AlertRed}" Value="True"><Setter Property="Background" Value="#602E2A" /><Setter Property="BorderBrush" Value="#ED876B" /></DataTrigger></Style.Triggers></Style></Border.Style>
+                        <Grid>
+                            <Border Opacity="0" IsHitTestVisible="False"><Border.Style><Style TargetType="Border"><Setter Property="Background" Value="#FFD581" /><Style.Triggers>
+                                <DataTrigger Binding="{Binding AnimateYellowAlert}" Value="True"><DataTrigger.EnterActions><BeginStoryboard Name="YellowPulse"><Storyboard><DoubleAnimation Storyboard.TargetProperty="Opacity" From="0.02" To="0.16" Duration="0:0:1.2" AutoReverse="True" RepeatBehavior="Forever" /></Storyboard></BeginStoryboard></DataTrigger.EnterActions><DataTrigger.ExitActions><RemoveStoryboard BeginStoryboardName="YellowPulse" /></DataTrigger.ExitActions></DataTrigger>
+                                <DataTrigger Binding="{Binding AnimateRedAlert}" Value="True"><Setter Property="Background" Value="#FF6D53" /><DataTrigger.EnterActions><BeginStoryboard Name="RedPulse"><Storyboard><DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="Opacity" Duration="0:0:0.4" RepeatBehavior="Forever"><DiscreteDoubleKeyFrame KeyTime="0:0:0" Value="0.30" /><DiscreteDoubleKeyFrame KeyTime="0:0:0.09" Value="0" /></DoubleAnimationUsingKeyFrames></Storyboard></BeginStoryboard></DataTrigger.EnterActions><DataTrigger.ExitActions><RemoveStoryboard BeginStoryboardName="RedPulse" /></DataTrigger.ExitActions></DataTrigger>
+                            </Style.Triggers></Style></Border.Style></Border>
+                            <DockPanel Margin="16,12"><Button Command="{Binding RetryStartupCommand}" Content="Try again" Style="{StaticResource PaperKey}" FontSize="16" DockPanel.Dock="Right" Margin="16,0,0,0" VerticalAlignment="Center" Visibility="{Binding CanRetryStartup, Converter={StaticResource Bool}}" />
+                                <StackPanel><TextBlock Text="{Binding AlertText}" Foreground="#FFF0CE" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" /><TextBlock Text="{Binding AlertAdvice}" Foreground="#F4E6C9" FontSize="16" Margin="0,5,0,0" TextWrapping="Wrap"><TextBlock.Style><Style TargetType="TextBlock"><Style.Triggers><Trigger Property="Text" Value=""><Setter Property="Visibility" Value="Collapsed" /></Trigger></Style.Triggers></Style></TextBlock.Style></TextBlock></StackPanel>
+                            </DockPanel>
+                        </Grid>
+                    </Border>
+                    <DockPanel Grid.Row="4" VerticalAlignment="Center" Margin="0,9,0,0">
+                        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                            <Button FontSize="16" Command="{Binding ReadyCommand}" Style="{StaticResource PrimaryKey}" Margin="0,0,12,0" Visibility="{Binding IsStandby, Converter={StaticResource Bool}}"><StackPanel Orientation="Horizontal"><controls:StudioIcon Kind="play" Width="20" Height="20" Margin="0,0,10,0" /><TextBlock Text="Ready to Record" /></StackPanel></Button>
+                            <Button FontSize="16" Command="{Binding ClapCommand}" Style="{StaticResource PaperKey}" Margin="0,0,12,0"><StackPanel Orientation="Horizontal"><controls:StudioIcon Kind="clap" Width="24" Height="24" Margin="0,0,10,0" /><TextBlock Text="Clap" VerticalAlignment="Center" /></StackPanel></Button>
+                            <Button FontSize="16" Command="{Binding PauseCommand}" Margin="0,0,12,0"><StackPanel Orientation="Horizontal"><controls:StudioIcon Kind="{Binding PauseIcon}" Width="20" Height="20" Margin="0,0,10,0" /><TextBlock Text="{Binding PauseLabel}" /></StackPanel></Button>
+                            <Button FontSize="16" Command="{Binding NextCommand}"><StackPanel Orientation="Horizontal"><TextBlock Text="Next segment" Margin="0,0,12,0" /><controls:StudioIcon Kind="next" Width="20" Height="20" /></StackPanel></Button>
+                        </StackPanel>
+                        <Border DockPanel.Dock="Right" MouseLeftButtonUp="OnWrapUpMouse" IsEnabled="{Binding CanWrap}" Cursor="Hand" Margin="16,0,0,3" CornerRadius="3" Background="#121B1F" ToolTip="Finish the session">
+                            <Border.Style><Style TargetType="Border"><Style.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.32" /></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter Property="Opacity" Value="0.85" /></Trigger></Style.Triggers></Style></Border.Style>
+                            <Border Background="{StaticResource RedCap}" BorderBrush="#E1A48B" BorderThickness="1" CornerRadius="3" Padding="18,12" Margin="0,0,0,4"><StackPanel Orientation="Horizontal"><controls:StudioIcon Kind="stop" Foreground="#FFF0D9" Width="18" Height="18" Margin="0,0,10,0" /><TextBlock Text="Wrap up" Foreground="#FFF0D9" FontWeight="SemiBold" FontSize="16" /></StackPanel></Border>
+                        </Border>
+                        <Button FontSize="16" Command="{Binding UndoCommand}" HorizontalAlignment="Right" ToolTip="{Binding UndoTooltip}" ToolTipService.ShowOnDisabled="True" Margin="12,0,0,0"><StackPanel Orientation="Horizontal"><controls:StudioIcon Kind="undo" Width="18" Height="18" Margin="0,0,8,0" /><TextBlock Text="Undo" /></StackPanel></Button>
+                    </DockPanel>
+                    <DockPanel Grid.Row="5" VerticalAlignment="Center"><TextBlock Text="{Binding LastAction}" FontSize="16" Foreground="#B9C4B8" VerticalAlignment="Center" /><Button Command="{Binding RedoCommand}" Content="{Binding RedoLabel}" Style="{StaticResource PaperKey}" FontSize="16" HorizontalAlignment="Right" Padding="14,5" ToolTip="Restore the action cancelled by Undo. Available for 10 seconds, until the next session action." Visibility="{Binding CanRedo, Converter={StaticResource Bool}}" /></DockPanel>
+                    <Border Grid.Row="3" Grid.RowSpan="2" Background="#FC1E2A2F" BorderBrush="#A9B4A7" BorderThickness="1" CornerRadius="4" Padding="38" Visibility="{Binding IsFinished, Converter={StaticResource Bool}}">
+                        <StackPanel VerticalAlignment="Center"><controls:StudioIcon Kind="check" Foreground="#D5C07F" Width="48" Height="48" HorizontalAlignment="Left" Margin="0,0,0,18" /><TextBlock Text="Session saved" FontSize="32" FontWeight="SemiBold" Foreground="#E7E8D2" /><TextBlock Text="{Binding ResultsSummary}" FontSize="16" Foreground="#BCC9BC" TextWrapping="Wrap" Margin="0,14,0,28" />
+                            <StackPanel Orientation="Horizontal"><Button FontSize="16" Style="{StaticResource PaperKey}" Command="{Binding SaveScenarioChangesCommand}" Margin="0,0,12,0"><StackPanel Orientation="Horizontal"><controls:StudioIcon Kind="save" Width="19" Height="19" Margin="0,0,9,0" /><TextBlock Text="Save Changes to Scenario" /></StackPanel></Button><Button FontSize="16" Style="{StaticResource PrimaryKey}" Command="{Binding CloseSessionCommand}" Content="Close Session" Margin="0,0,12,0" /><Button FontSize="16" Command="{Binding UndoCommand}" Content="{Binding UndoLabel}" /></StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Border>
+    </Viewbox><Border x:Name="UndoFlash" Background="#3985FF" Opacity="0" IsHitTestVisible="False" /></Grid>
 </Window>

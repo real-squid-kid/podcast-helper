@@ -121,7 +121,7 @@ internal static class JournalCodec
     {
         if (state.Engine is null || state.UndoStack.IsDefault || state.Engine.SessionFractionTicks is < 0 or >= 10000
             || state.Engine.ActiveFractionTicks is < 0 or >= 10000 || state.UndoStack.Any(x => x is null || x.CommandId == Guid.Empty
-                || x.BeforeSequence < 1 || x.Sequence <= x.BeforeSequence || x.Kind is not (SessionCommandKind.NextSegment or SessionCommandKind.Reorder)))
+                || x.BeforeSequence < 1 || x.Sequence <= x.BeforeSequence || !SessionCommands.IsReversible(x.Kind)))
             throw new InvalidDocumentException("Invalid durable session state.");
         ModelValidation.Session(state.Engine.Session);
     }

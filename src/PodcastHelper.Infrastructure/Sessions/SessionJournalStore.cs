@@ -140,6 +140,7 @@ public sealed class SessionJournalStore(PortablePaths paths, IJournalFileSystem 
                 || undo.BeforeSequence != undo.Sequence - 1) throw new InvalidDocumentException("Broken Undo reference.");
         foreach (var record in records)
             if (record.UndoOf is { } target && (!byId.TryGetValue(target, out var original) || original.Sequence >= record.Sequence
-                || record.Command.Kind != SessionCommandKind.Undo)) throw new InvalidDocumentException("Invalid Undo audit link.");
+                || record.Command.Kind is not (SessionCommandKind.Undo or SessionCommandKind.Redo)
+                || record.Command.Kind == SessionCommandKind.Redo && original.Command.Kind != SessionCommandKind.Undo)) throw new InvalidDocumentException("Invalid Undo audit link.");
     }
 }

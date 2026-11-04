@@ -16,6 +16,7 @@ public sealed class SessionEngine
     private DateTimeOffset nowUtc;
     private TimeSpan localOffset;
     private Session session;
+    private readonly List<SessionEvent> automaticEvents = [];
 
     public bool IsClapDialogOpen { get; private set; }
     public bool IsOnAir => session.State == SessionState.Recording;
@@ -78,6 +79,140 @@ public sealed class SessionEngine
         nowUtc = nowUtc, localOffset = localOffset, IsClapDialogOpen = IsClapDialogOpen
     };
 
+    public ImmutableArray<SessionEvent> DrainAutomaticEvents()
+    {
+        var result = automaticEvents.ToImmutableArray(); automaticEvents.Clear(); return result;
+    }
+
+    public TimerWarning TimerWarning => !session.Timer.Running ? TimerWarning.None : session.Timer.RemainingMs <= 5000
+        ? TimerWarning.Red : session.Timer.RemainingMs <= 15000 ? TimerWarning.Yellow : TimerWarning.None;
+
+    public SessionTransition StartTimer(int seconds)
+    {
+        RequireRunningSession();
+        if (seconds <= 0) throw new ArgumentOutOfRangeException(nameof(seconds), "Timer duration must be positive.");
+        AdvanceTime();
+        var events = ImmutableArray.CreateBuilder<SessionEvent>();
+        if (session.Timer.Running) events.Add(Event(SessionEventType.TimerStopped, "replaced"));
+        session = session with { Timer = new SessionTimer(seconds * 1000L, true, session.ActiveElapsedMs) };
+        events.Add(Event(SessionEventType.TimerStarted, $"{seconds / 60:D2}:{seconds % 60:D2}"));
+        return new(session, events.ToImmutable());
+    }
+
+    public SessionTransition StopTimer()
+    {
+        RequireRunningSession(); AdvanceTime();
+        if (!session.Timer.Running) return Result();
+        session = session with { Timer = session.Timer with { Running = false } };
+        return Result(Event(SessionEventType.TimerStopped, "manual"));
+    }
+
+    public SessionTransition AdjustTimer(int seconds)
+    {
+        RequireRunningSession(); AdvanceTime();
+        long value = Math.Max(0, checked(session.Timer.RemainingMs + seconds * 1000L));
+        bool stopped = session.Timer.Running && value == 0;
+        session = session with { Timer = session.Timer with { RemainingMs = value, Running = session.Timer.Running && value > 0 } };
+        return stopped ? Result(Event(SessionEventType.TimerAdjusted, seconds.ToString(CultureInfo.InvariantCulture)), Event(SessionEventType.TimerStopped, "adjustedToZero"))
+            : Result(Event(SessionEventType.TimerAdjusted, seconds.ToString(CultureInfo.InvariantCulture)));
+    }
+
+    public SessionTransition AddMoment(string categoryId, long dispatchDelayTicks = 0, DateTimeOffset? pressedUtc = null, TimeSpan? offset = null)
+    {
+        RequireState(SessionState.Recording); RequireNoClapDialog();
+        var category = session.SettingsSnapshot.Categories.SingleOrDefault(x => x.Id == categoryId)
+            ?? throw new ArgumentException("Unknown moment category.", nameof(categoryId));
+        AdvanceTime();
+        if (dispatchDelayTicks < 0 || dispatchDelayTicks > activeTicks) throw new ArgumentOutOfRangeException(nameof(dispatchDelayTicks));
+        var time = CaptureTime();
+        long atSession = (sessionTicks - dispatchDelayTicks) / TimeSpan.TicksPerMillisecond;
+        long atActive = (activeTicks - dispatchDelayTicks) / TimeSpan.TicksPerMillisecond;
+        long difference = session.ActiveElapsedMs - atActive;
+        if (difference > Current.ActiveElapsedMs) throw new InvalidOperationException("The segment changed before this press was handled.");
+        var local = (pressedUtc ?? time.UtcTimestamp).ToOffset(offset ?? time.LocalComputerTimestamp.Offset);
+        time = time with { SessionElapsedMs = atSession, ActiveElapsedMs = atActive,
+            SegmentActiveElapsedMs = time.SegmentActiveElapsedMs - difference, TakeElapsedMs = time.TakeElapsedMs - (time.SessionElapsedMs - atSession),
+            UtcTimestamp = local.ToUniversalTime(), LocalComputerTimestamp = local,
+            PredictedCameraTimecode = local.ToString("HH:mm:ss", CultureInfo.InvariantCulture) + ":00" };
+        var press = new MomentPress(time, session.SettingsSnapshot.MarkerOffsetSeconds, category with { });
+        var last = session.Moments.LastOrDefault();
+        bool merge = last is not null && atSession >= last.Presses[^1].Time.SessionElapsedMs
+            && atSession - last.Presses[^1].Time.SessionElapsedMs <= 3000;
+        if (merge)
+        {
+            var combined = last! with { Presses = last.Presses.Add(press) };
+            session = session with { Moments = session.Moments.SetItem(session.Moments.Length - 1, combined) };
+            return Result(new SessionEvent(Guid.NewGuid(), SessionEventType.MomentMerged, time, combined.Id.ToString("N")));
+        }
+        var moment = new Moment(Guid.NewGuid(), Math.Max(0, atSession - press.OffsetSeconds * 1000L), [press]);
+        session = session with { Moments = session.Moments.Add(moment) };
+        return Result(new SessionEvent(Guid.NewGuid(), SessionEventType.MomentAdded, time, moment.Id.ToString("N")));
+    }
+
+    public SessionTransition RemoveMoment(Guid id)
+    {
+        RequireRunningSession(); AdvanceTime();
+        int index = Array.FindIndex(session.Moments.ToArray(), x => x.Id == id);
+        if (index < 0) throw new ArgumentException("Moment not found.", nameof(id));
+        session = session with { Moments = session.Moments.RemoveAt(index) };
+        return Result(Event(SessionEventType.MomentRemoved, id.ToString("N")));
+    }
+
+    public SessionTransition AddFutureSegment(Segment segment)
+    {
+        RequireRunningSession();
+        ModelValidation.Scenario(new Scenario { Name = "Validation", ModifiedUtc = nowUtc, TargetSeconds = 1, Segments = [segment] });
+        if (session.Segments.Any(x => x.Original.Id == segment.Id)) throw new ArgumentException("Segment ID already exists.");
+        AdvanceTime();
+        // Новая карточка сохраняет введённую длительность; нехватка плана видна как предупреждение, без скрытого сокращения.
+        long fromReserve = Math.Min(ReserveMs, segment.OriginalSeconds * 1000L);
+        SetReserve(ReserveMs - fromReserve);
+        session = session with { Segments = session.Segments.Add(new(segment, segment.OriginalSeconds, 0)) };
+        return Result(Event(SessionEventType.SegmentAdded, segment.Id.ToString("N")));
+    }
+
+    public SessionTransition RemoveFutureSegment(Guid id)
+    {
+        RequireRunningSession();
+        int index = Array.FindIndex(session.Segments.ToArray(), x => x.Original.Id == id);
+        if (index <= session.CurrentSegmentIndex) throw new InvalidOperationException("Only an upcoming segment can be removed without an explicit time reassignment.");
+        AdvanceTime();
+        long returned = session.Segments[index].BudgetSeconds * 1000L;
+        long repaid = Math.Min(returned, session.UnfundedOverrunMs);
+        session = session with { Segments = session.Segments.RemoveAt(index), UnfundedOverrunMs = session.UnfundedOverrunMs - repaid };
+        SetReserve(checked(ReserveMs + returned - repaid));
+        return Result(Event(SessionEventType.SegmentRemoved, id.ToString("N")));
+    }
+
+    public SessionTransition RemoveCurrentAndAdvanceConfirmed()
+    {
+        RequireRunningSession(); AdvanceTime();
+        var removed = Event(SessionEventType.SegmentRemoved, "Elapsed time retained under the completed segment.");
+        session = session with { Segments = session.Segments.SetItem(session.CurrentSegmentIndex, Current with { RemovedFromScenario = true }) };
+        var transition = NextSegment();
+        return transition with { Events = transition.Events.Insert(0, removed) };
+    }
+
+    public SessionTransition EditFutureSegment(Segment edited)
+    {
+        RequireRunningSession();
+        int index = Array.FindIndex(session.Segments.ToArray(), x => x.Original.Id == edited.Id);
+        if (index <= session.CurrentSegmentIndex) throw new InvalidOperationException("Only upcoming segments can be edited here.");
+        ModelValidation.Scenario(new Scenario { Name = "Validation", ModifiedUtc = nowUtc, TargetSeconds = 1, Segments = [edited] });
+        AdvanceTime();
+        var previous = session.Segments[index];
+        long delta = edited.OriginalSeconds * 1000L - previous.BudgetSeconds * 1000L;
+        if (delta > 0) SetReserve(ReserveMs - Math.Min(ReserveMs, delta));
+        else
+        {
+            long credit = -delta, repaid = Math.Min(credit, session.UnfundedOverrunMs);
+            session = session with { UnfundedOverrunMs = session.UnfundedOverrunMs - repaid };
+            SetReserve(checked(ReserveMs + credit - repaid));
+        }
+        session = session with { Segments = session.Segments.SetItem(index, previous with { Original = edited, BudgetSeconds = edited.OriginalSeconds }) };
+        return Result(Event(SessionEventType.ScenarioEdited, edited.Id.ToString("N")));
+    }
+
     public SessionEngine WithCheckpoint(EngineCheckpoint checkpoint)
     {
         var replacement = FromCheckpoint(checkpoint, clock);
@@ -119,27 +254,52 @@ public sealed class SessionEngine
     }
 
     // Единственная точка регистрации хлопушки. UI вызывает её только из обработчика физического Enter.
-    public SessionTransition ClapFromEnter()
+    public SessionTransition ClapFromEnter(long dispatchDelayTicks = 0, DateTimeOffset? pressedUtc = null, TimeSpan? pressedOffset = null)
     {
         bool first = session.State == SessionState.Ready;
         bool newTake = first || session.State == SessionState.AwaitingClap;
         if (!newTake && !(session.State == SessionState.Recording && IsClapDialogOpen))
             throw new InvalidOperationException("Press Enter in the clap dialog, or wait until the session is ready.");
         AdvanceTime();
+        if (dispatchDelayTicks < 0 || !first && dispatchDelayTicks > sessionTicks) throw new ArgumentOutOfRangeException(nameof(dispatchDelayTicks));
+        var localPress = (pressedUtc ?? nowUtc).ToOffset(pressedOffset ?? localOffset);
+        long pressSessionMs = first ? 0 : (sessionTicks - dispatchDelayTicks) / TimeSpan.TicksPerMillisecond;
         var events = ImmutableArray.CreateBuilder<SessionEvent>();
         if (newTake)
         {
-            session = session with { State = SessionState.Recording, Pause = null, StartedUtc = session.StartedUtc ?? nowUtc };
+            session = session with { State = SessionState.Recording, Pause = null, StartedUtc = session.StartedUtc ?? localPress.ToUniversalTime() };
             var takeId = Guid.NewGuid();
-            var started = CaptureTime() with { TakeId = takeId, TakeElapsedMs = 0 };
+            var started = CaptureTime() with { TakeId = takeId, TakeElapsedMs = 0, SessionElapsedMs = pressSessionMs,
+                UtcTimestamp = localPress.ToUniversalTime(), LocalComputerTimestamp = localPress,
+                PredictedCameraTimecode = localPress.ToString("HH:mm:ss", CultureInfo.InvariantCulture) + ":00" };
             session = session with { Takes = session.Takes.Add(new Take(takeId, session.Takes.Length + 1, started)) };
             events.Add(new(Guid.NewGuid(), SessionEventType.TakeStarted, started));
         }
         var time = CaptureTime();
+        if (newTake) time = session.Takes[^1].Started;
+        else
+        {
+            long pressedActiveMs = (activeTicks - dispatchDelayTicks) / TimeSpan.TicksPerMillisecond;
+            long activeDelayMs = session.ActiveElapsedMs - pressedActiveMs;
+            if (activeDelayMs > Current.ActiveElapsedMs) throw new InvalidOperationException("The segment changed before this clap was handled.");
+            time = time with { SessionElapsedMs = pressSessionMs, ActiveElapsedMs = pressedActiveMs,
+                SegmentActiveElapsedMs = time.SegmentActiveElapsedMs - activeDelayMs, TakeElapsedMs = time.TakeElapsedMs - (time.SessionElapsedMs - pressSessionMs),
+                UtcTimestamp = localPress.ToUniversalTime(), LocalComputerTimestamp = localPress,
+                PredictedCameraTimecode = localPress.ToString("HH:mm:ss", CultureInfo.InvariantCulture) + ":00" };
+        }
         var clap = new Clap(Guid.NewGuid(), OpenTake!.Id, time);
         session = session with { Claps = session.Claps.Add(clap) };
         events.Add(new(clap.Id, SessionEventType.Clap, time));
-        if (first) events.Add(Event(SessionEventType.SegmentStarted));
+        if (first) events.Add(new(Guid.NewGuid(), SessionEventType.SegmentStarted, time));
+        if (newTake && dispatchDelayTicks > 0)
+        {
+            if (first)
+            {
+                sessionTicks = dispatchDelayTicks;
+                session = session with { SessionElapsedMs = sessionTicks / TimeSpan.TicksPerMillisecond };
+            }
+            AccountRecordingDelta(dispatchDelayTicks);
+        }
         IsClapDialogOpen = false;
         return new(session, events.ToImmutable());
     }
@@ -229,8 +389,12 @@ public sealed class SessionEngine
         if (deltaTicks == 0) return;
         if (session.State is SessionState.Preparing or SessionState.Ready or SessionState.Finished) return;
         sessionTicks = checked(sessionTicks + deltaTicks);
-        if (session.State == SessionState.Recording)
-        {
+        session = session with { SessionElapsedMs = sessionTicks / TimeSpan.TicksPerMillisecond };
+        if (session.State == SessionState.Recording) AccountRecordingDelta(deltaTicks);
+    }
+
+    private void AccountRecordingDelta(long deltaTicks)
+    {
             long previousActiveMs = activeTicks / TimeSpan.TicksPerMillisecond;
             activeTicks = checked(activeTicks + deltaTicks);
             var current = Current;
@@ -247,9 +411,24 @@ public sealed class SessionEngine
                 Segments = session.Segments.SetItem(session.CurrentSegmentIndex, current with
                 { ActiveElapsedMs = elapsedMs, ReserveUsedMs = current.ReserveUsedMs + fromReserve })
             };
+        session = session with { ActiveElapsedMs = activeTicks / TimeSpan.TicksPerMillisecond };
+        if (session.Timer.Running)
+        {
+            long elapsed = session.ActiveElapsedMs - (activeTicks - deltaTicks) / TimeSpan.TicksPerMillisecond;
+            long remaining = Math.Max(0, session.Timer.RemainingMs - elapsed);
+            long overshoot = Math.Max(0, elapsed - session.Timer.RemainingMs);
+            session = session with { Timer = session.Timer with { RemainingMs = remaining, Running = remaining > 0 } };
+            if (remaining == 0)
+            {
+                var time = CaptureTime();
+                var utc = time.UtcTimestamp.AddMilliseconds(-overshoot);
+                var local = utc.ToOffset(time.LocalComputerTimestamp.Offset);
+                time = time with { SessionElapsedMs = time.SessionElapsedMs - overshoot, ActiveElapsedMs = time.ActiveElapsedMs - overshoot,
+                    SegmentActiveElapsedMs = time.SegmentActiveElapsedMs - overshoot, TakeElapsedMs = time.TakeElapsedMs - overshoot,
+                    UtcTimestamp = utc, LocalComputerTimestamp = local, PredictedCameraTimecode = local.ToString("HH:mm:ss", CultureInfo.InvariantCulture) + ":00" };
+                automaticEvents.Add(new(Guid.NewGuid(), SessionEventType.TimerFinished, time));
+            }
         }
-        session = session with { SessionElapsedMs = sessionTicks / TimeSpan.TicksPerMillisecond,
-            ActiveElapsedMs = activeTicks / TimeSpan.TicksPerMillisecond };
     }
 
     private void ReadCalendarTime()
@@ -312,6 +491,11 @@ public sealed class SessionEngine
     {
         var events = ImmutableArray.CreateBuilder<SessionEvent>();
         events.Add(segmentFinished);
+        if (session.Timer.Running)
+        {
+            session = session with { Timer = session.Timer with { Running = false } };
+            events.Add(Event(SessionEventType.TimerStopped, "sessionFinished"));
+        }
         if (OpenTake is not null) events.Add(CloseTake(CaptureTime()));
         session = session with { State = SessionState.Finished, FinishedUtc = nowUtc, Pause = null };
         events.Add(Event(SessionEventType.SessionFinished, reason));

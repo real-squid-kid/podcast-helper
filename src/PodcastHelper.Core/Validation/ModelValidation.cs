@@ -6,7 +6,7 @@ public sealed class ModelValidationException(string message) : Exception(message
 
 public static class ModelValidation
 {
-    private static void Require(bool condition, string message)
+    private static void Require([System.Diagnostics.CodeAnalysis.DoesNotReturnIf(false)] bool condition, string message)
     {
         if (!condition) throw new ModelValidationException(message);
     }
@@ -129,6 +129,25 @@ public static class ModelValidation
             _ => false
         };
         Require(validState, "Session state is inconsistent with its takes and pause.");
+        Require(session.Timer is not null && session.Timer.RemainingMs >= 0 && (!session.Timer.Running || session.Timer.RemainingMs > 0)
+            && (session.State != SessionState.Finished || !session.Timer.Running), "Invalid timer state.");
+        Require(!session.Moments.IsDefault && session.Moments.All(x => x is not null && x.Id != Guid.Empty && !x.Presses.IsDefaultOrEmpty)
+            && session.Moments.Select(x => x.Id).Distinct().Count() == session.Moments.Length, "Invalid moment collection.");
+        foreach (var moment in session.Moments)
+        {
+            Require(moment.SessionElapsedMs == Math.Max(0, moment.Presses[0].Time.SessionElapsedMs - moment.Presses[0].OffsetSeconds * 1000L), "Invalid marker offset.");
+            for (int i = 0; i < moment.Presses.Length; i++)
+            {
+                var press = moment.Presses[i];
+                Require(press is not null && press.Time is not null && press.Category is not null && press.OffsetSeconds >= 0
+                    && !string.IsNullOrWhiteSpace(press.Category.Name) && !string.IsNullOrWhiteSpace(press.Category.Icon), "Invalid moment press.");
+                Time(press!.Time);
+                Require(session.SettingsSnapshot!.Categories.Any(x => x.Id == press.Category.Id) && press.Time.SessionElapsedMs <= session.SessionElapsedMs,
+                    "Invalid moment category or press time.");
+                if (i > 0) Require(press.Time.SessionElapsedMs >= moment.Presses[i - 1].Time.SessionElapsedMs
+                    && press.Time.SessionElapsedMs - moment.Presses[i - 1].Time.SessionElapsedMs <= 3000, "Moment merge window exceeded.");
+            }
+        }
     }
 
     private static void Time(EventTime time)

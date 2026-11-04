@@ -14,7 +14,10 @@ public sealed record BudgetProjection(
     ImmutableArray<int> FutureBudgets,
     long ProposedCutSeconds,
     SegmentWarning Warning,
-    bool ReserveInUse);
+    bool ReserveInUse)
+{
+    public long PlannedExcessMs { get; init; }
+}
 
 public static class BudgetProjector
 {
@@ -29,12 +32,17 @@ public static class BudgetProjector
         long uncovered = Math.Max(0, session.UnfundedOverrunMs - distribution.CoveredSeconds * 1000);
         long effective = checked(own + reserve);
         var settings = session.SettingsSnapshot;
+        bool yellow = effective <= settings.SegmentWarningMinutes * 60_000L;
+        bool red = effective <= settings.SegmentWrapUpMinutes * 60_000L;
         SegmentWarning warning = uncovered > 0 ? SegmentWarning.Overscheduled
             : session.UnfundedOverrunMs > 0 || (own == 0 && reserve == 0) ? SegmentWarning.Overdue
-            : effective <= Math.Min(settings.SegmentWarningMinutes, settings.SegmentWrapUpMinutes) * 60_000L ? SegmentWarning.Red
-            : effective <= Math.Max(settings.SegmentWarningMinutes, settings.SegmentWrapUpMinutes) * 60_000L ? SegmentWarning.Yellow
+            : yellow && red ? settings.SegmentWrapUpMinutes <= settings.SegmentWarningMinutes ? SegmentWarning.Red : SegmentWarning.Yellow
+            : red ? SegmentWarning.Red : yellow ? SegmentWarning.Yellow
             : SegmentWarning.None;
+        long planTotalMs = checked(session.ActiveElapsedMs + reserve + (session.State == SessionState.Finished ? 0 : own)
+            + future.Sum(x => x * 1000L) - session.UnfundedOverrunMs);
         return new(own, reserve, effective, session.UnfundedOverrunMs, uncovered, distribution.Budgets,
-            distribution.CoveredSeconds, warning, current.ReserveUsedMs > 0 && reserve > 0);
+            distribution.CoveredSeconds, warning, current.ReserveUsedMs > 0 && reserve > 0)
+        { PlannedExcessMs = Math.Max(0, planTotalMs - session.ScenarioSnapshot.TargetSeconds * 1000L) };
     }
 }

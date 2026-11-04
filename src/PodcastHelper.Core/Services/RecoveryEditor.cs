@@ -5,7 +5,10 @@ using PodcastHelper.Core.Validation;
 namespace PodcastHelper.Core.Services;
 
 public enum RecoveryStatus { Recording, PausedTakeContinues, PausedTakeStopped, AwaitingClap }
-public sealed record RecoveryEdits(long SessionElapsedMs, int SegmentIndex, long SegmentActiveElapsedMs, long TakeElapsedMs, RecoveryStatus Status);
+public sealed record RecoveryEdits(long SessionElapsedMs, int SegmentIndex, long SegmentActiveElapsedMs, long TakeElapsedMs, RecoveryStatus Status)
+{
+    public long? TimerRemainingMs { get; init; }
+}
 
 public static class RecoveryEditor
 {
@@ -47,6 +50,8 @@ public static class RecoveryEditor
             edits.SessionElapsedMs, active, segment.Original.Id, edits.SegmentActiveElapsedMs, last.Id, edits.TakeElapsedMs)
         { TakeClockAdjustmentMs = adjustment };
         bool stopped = edits.Status is RecoveryStatus.PausedTakeStopped or RecoveryStatus.AwaitingClap;
+        long timerRemaining = edits.TimerRemainingMs ?? (s.Timer.Running ? Math.Max(0, checked(s.Timer.RemainingMs - (active - s.ActiveElapsedMs))) : s.Timer.RemainingMs);
+        if (timerRemaining < 0) throw new ModelValidationException("Timer remaining time must not be negative.");
         var result = s with
         {
             SessionElapsedMs = edits.SessionElapsedMs, ActiveElapsedMs = active, CurrentSegmentIndex = edits.SegmentIndex,
@@ -54,7 +59,8 @@ public static class RecoveryEditor
             ReserveSeconds = reserve / 1000, ReserveSubsecondMs = (int)(reserve % 1000), UnfundedOverrunMs = debt,
             Takes = s.Takes.SetItem(s.Takes.Length - 1, last with { ElapsedAdjustmentMs = adjustment, Ended = stopped ? stamp : null }),
             State = edits.Status switch { RecoveryStatus.Recording => SessionState.Recording, RecoveryStatus.AwaitingClap => SessionState.AwaitingClap, _ => SessionState.Paused },
-            Pause = edits.Status == RecoveryStatus.Recording ? null : new PauseContext(stamp, stopped), FinishedUtc = null
+            Pause = edits.Status == RecoveryStatus.Recording ? null : new PauseContext(stamp, stopped), FinishedUtc = null,
+            Timer = s.Timer with { RemainingMs = timerRemaining, Running = s.Timer.Running && timerRemaining > 0 }
         };
         return RecoveryPlanner.Reconcile(plan, result);
     }
